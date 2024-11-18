@@ -1,25 +1,26 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/M0kyOMLZ)
-# Frobnicator (this is a template)
+# Mastermind
 
 ## Authors
-- Andrzej Głuszak (@agluszak on GitHub)
-- Linus Torvalds (@torvalds on GitHub)
+- Karol Baciński (@karolus162 on GitHub)
+- Marta Hering-Zagrocka (@mhz47 on GitHub)
 
 ## Description
-Frobnicator is going to be a platformer game similar to Super Mario Bros made using Korge game engine.
+Mastermind to prosta gra planszowa, w której gracz próbuje odgadnąć ukryty kod składający się z kolorowych pionków. W podstawowej wersji gry gracz będzie miał do dyspozycji 8 kolorów, z których będzie mógł wybrać 4, aby stworzyć swój kod. Po każdym ruchu gracz będzie otrzymywał informacje zwrotne, które pomogą mu odgadnąć kod. Gra kończy się, gdy gracz odgadnie kod lub skończy się mu liczba prób.
 
 ## Features
-- map generator
-- shooting
-- enemy AI
-- game state saving and loading
-- scores
+- single player mode
+- several difficulty levels
+- multiplayer 1v1 web mode
+- GUI
 
 ## Plan
-In the first part we're going to implement the basics: movement, physics and shooting. The enemies will simply bounce from one edge of the platform to the other. There will be only a single map.
+W pierwszej części zajmiemy się podstawowymi funkcjonalnościami, żeby gra była grywalna dla pojedynczego gracza z podstawowym GUI.
 
-In the second part we're going to add random map generator, saving/loading, scores and a more sophisticated AI.
+W drugiej części dodamy możliwość gry wieloosobowej, w której gracze będą mogli rywalizować ze sobą na sieciowo, dodatkowe poziomy trudności i dopracujemy wygląd.
 
 ## Libraries
-- Korge (https://korge.org/)
-- kotlinx-serialization (https://github.com/Kotlin/kotlinx.serialization)
+Prawdobodobnie będziemy korzystać z:
+- TornadoFX
+- Ktor
+- JUnit
