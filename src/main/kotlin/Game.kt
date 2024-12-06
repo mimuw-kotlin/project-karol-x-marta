@@ -1,9 +1,13 @@
 // src/main/kotlin/Game.kt
-class Game(private val settings: Settings) {
-    private val secretCode: List<String> =
+import kotlin.system.measureTimeMillis
+class Game(private val settings: Settings, private val manualCode: String) {
+    private val secretCode: List<String> = if (manualCode.isNotEmpty()) {
+        manualCode.split(" ").map { it.trim() }
+    } else {
         List(settings.sequenceLength) { settings.colorsList.random() }
+    }
     val checker = Checker(secretCode)
-    val player = Player()
+    val player = Player(settings.sequenceLength)
     var attempts = 0
     var isSolved = false
 
@@ -30,16 +34,21 @@ class Game(private val settings: Settings) {
                 "You have ${settings.maxAttempts} attempts to guess it. " +
                 "Good luck!")
 
+        val startTime = System.currentTimeMillis()
+
         while (!isGameOver()) {
             val guess = player.makeGuess()
             val feedback = checkGuess(guess)
             println("Feedback: \n$feedback")
         }
 
+        val elapsedTime = System.currentTimeMillis() - startTime
+
         if (isSolved) {
             println("Congratulations! You've guessed the code.")
         } else {
             println("Game over! The correct code was $secretCode")
         }
+        println("Time score: ${"%.3f".format(elapsedTime / 1000.0)} seconds")
     }
 }

@@ -1,7 +1,15 @@
-class Player {
+class Player (private val sequenceLength: Int) {
     fun makeGuess(): List<String> {
-        println("Enter your guess (4 colors separated by spaces):")
-        val input = readLine() ?: ""
-        return input.split(" ").map { it.capitalize() }
+        while (true) {
+            println("Enter your guess ($sequenceLength colors separated by spaces):")
+            val input = readLine() ?: ""
+            val guess = input.split(" ")
+            if (guess.size == sequenceLength) {
+                return guess.map { it.replaceFirstChar { char -> char.uppercase() } }
+            }
+            else {
+                println("Wrong input. Please enter $sequenceLength colors separated by spaces.")
+            }
+        }
     }
 }

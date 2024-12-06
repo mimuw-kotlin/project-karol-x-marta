@@ -11,7 +11,7 @@ fun main(args: Array<String>) {
     val sequenceLength by parser.option(ArgType.Int, shortName = "l", description = "Sequence length").default(4)
     val maxAttempts by parser.option(ArgType.Int, shortName = "a", description = "Maximum attempts").default(10)
     val colors by parser.option(ArgType.String, shortName = "c", description = "Colors list").default("A,B,C,D,E,F")
-
+    val manualCode by parser.option(ArgType.String, shortName = "m", description = "Manual code").default("")
     parser.parse(args)
 
     if (gui) {
@@ -23,7 +23,7 @@ fun main(args: Array<String>) {
     } else {
         val colorsList = colors.split(",").map(String::trim)
         val settings = Settings(sequenceLength = sequenceLength, maxAttempts = maxAttempts, colorsList = colorsList)
-        val game = Game(settings)
+        val game = Game(settings, manualCode)
         game.start()
     }
 }

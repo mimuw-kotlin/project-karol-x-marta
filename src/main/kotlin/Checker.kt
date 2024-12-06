@@ -3,24 +3,20 @@ class Checker(val secretCode: List<String>) {
     fun checkGuess(guess: List<String>): Feedback{
         var correctCount = 0
         var misplacedCount = 0
-        val secretSet: MutableList<String> = mutableListOf()
-        val guessSet: MutableList<String> = mutableListOf()
+        val secretMap: HashMap<String, Int> = HashMap()
+        val guessMap: HashMap<String, Int> = HashMap()
 
         for (i in guess.indices) {
             if (guess[i] == secretCode[i]) correctCount++
             else {
-                secretSet.add(secretCode[i])
-                guessSet.add(guess[i])
+                secretMap[secretCode[i]] = secretMap.getOrDefault(secretCode[i], 0) + 1
+                guessMap[guess[i]] = guessMap.getOrDefault(guess[i], 0) + 1
             }
         }
 
-        for (i in guessSet.indices) {
-            for (j in secretSet.indices) {
-                if (guessSet[i] == secretSet[j]) {
-                    misplacedCount++
-                    secretSet.removeAt(j)
-                    break
-                }
+        for (color in guessMap.keys) {
+            if (secretMap.containsKey(color)) {
+                misplacedCount += minOf(guessMap.getValue(color), secretMap.getValue(color))
             }
         }
 

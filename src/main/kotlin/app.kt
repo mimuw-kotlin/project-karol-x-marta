@@ -21,7 +21,7 @@ fun app() {
     var gameOver by remember { mutableStateOf(false) }
     // TODO: dodać możliwość zmiany ustawień gry
     val settings = Settings(sequenceLength = 4, maxAttempts = 10, colorsList = listOf("A", "B", "C", "D", "E", "F"))
-    var game by remember { mutableStateOf(Game(settings)) }
+    var game by remember { mutableStateOf(Game(settings, manualCode = "")) }
     val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
 
     fun submitGuess() {
@@ -46,7 +46,7 @@ fun app() {
         input = ""
         gameOver = false
         guesses.clear()
-        game = Game(settings)
+        game = Game(settings, manualCode = "")
     }
 
     MaterialTheme {
