@@ -1,6 +1,8 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,8 +16,12 @@ import kotlin.system.exitProcess
 import androidx.compose.ui.text.font.FontWeight
 import kotlin.collections.toMutableList
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import kotlinx.coroutines.delay
-import kotlin.div
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.window.WindowState
 
 @Composable
 @Preview
@@ -24,17 +30,23 @@ fun app() {
     var input by remember { mutableStateOf("") }
     var placeholder by remember { mutableStateOf("Enter your guess (space-separated colors)") }
     var gameOver by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+    var isPaused by remember { mutableStateOf(false) }
 
-    // TODO: dodać możliwość zmiany ustawień gry
-    val settings = Settings(sequenceLength = 4, maxAttempts = 10, colorsList = listOf("A", "B", "C", "D", "E", "F"))
+    var sequenceLength by remember { mutableStateOf(4) }
+    var maxAttempts by remember { mutableStateOf(10) }
+    var colorsList by remember { mutableStateOf(listOf("A", "B", "C", "D", "E", "F")) }
+
+    val settings = Settings(sequenceLength = sequenceLength, maxAttempts = maxAttempts, colorsList = colorsList)
     var game by remember { mutableStateOf(Game(settings, manualCode = "")) }
     val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
 
     var startTime by remember { mutableStateOf<Long?>(null) }
+    var pausedTime by remember { mutableStateOf<Long?>(null) }
     var timer by remember { mutableStateOf(0L) }
 
-    LaunchedEffect(startTime) {
-        while (startTime != null && !gameOver) {
+    LaunchedEffect(startTime, pausedTime) {
+        while (startTime != null && !gameOver && pausedTime == null && !isPaused) {
             delay(10L)
             startTime?.let {
                 timer = System.currentTimeMillis() - it
@@ -75,22 +87,64 @@ fun app() {
         guesses.clear()
         game = Game(settings, manualCode = "")
         startTime = null
+        pausedTime = null
         timer = 0L
+        isPaused = false
     }
 
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                // TODO: dodać zegar (nwm czy to na pewno właściwe miejsce)
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 30.dp, bottom = 16.dp, end = 275.dp)) {
                 Text(text, fontWeight = FontWeight.Bold)
-                guesses.forEach { (guess, feedback) ->
-                    Text("Guess: ${guess.joinToString(", ")} - Feedback: $feedback")
+                Column {
+                    Row {
+                        if (!guesses.isEmpty()) {
+                            Text("Guess", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                            Text("Feedback", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                        }
+                    }
+                    guesses.forEach { (guess, feedback) ->
+                        Row {
+                            Text(guess.joinToString(", "), modifier = Modifier.weight(1f))
+                            Text(feedback.toString(), modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
             }
-            Text(
-                text = "Time: ${"%.3f".format(timer / 1000.0)}s",
-                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
-            )
+            Row(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+                Text(
+                    text = "Time: ${"%.3f".format(timer / 1000.0)} s  ",
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                if (!gameOver) {
+                    Button(
+                        onClick = {
+                            pausedTime = System.currentTimeMillis()
+                            isPaused = true
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
+                    ) {
+                        Text("||", fontWeight = FontWeight.Bold)
+                    }
+                }
+                else {
+                    Button(
+                        onClick = {
+                            resetGame()
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Restart")
+                    }
+                }
+
+                IconButton(onClick = {
+                    pausedTime = System.currentTimeMillis()
+                    showSettings = true
+                }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Settings")
+                }
+            }
             if (gameOver) {
                 Row(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
@@ -128,13 +182,75 @@ fun app() {
                     }
                 }
             }
+
+            if (showSettings) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Gray.copy(alpha = 1f))
+                )
+                SettingsDialog(
+                    sequenceLength = sequenceLength,
+                    onSequenceLengthChange = { sequenceLength = it },
+                    maxAttempts = maxAttempts,
+                    onMaxAttemptsChange = { maxAttempts = it },
+                    colorsList = colorsList,
+                    onColorsListChange = { colorsList = it },
+                    onDismissRequest = {
+                        startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
+                        pausedTime = null
+                        showSettings = false
+                    },
+                    onApply = {
+                        resetGame()
+                        showSettings = false
+                    }
+                )
+            }
+
+
+            if (isPaused) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Gray.copy(alpha = 1f))
+                )
+                AlertDialog(
+                    onDismissRequest = { isPaused = false },
+                    title = { Text("Game Paused") },
+                    confirmButton = {
+                        Button(onClick = {
+                            startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
+                            pausedTime = null
+                            isPaused = false
+                        }) {
+                            Text("Play")
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = {
+                            resetGame()
+                            isPaused = false
+                        }) {
+                            Text("Restart")
+                            Icon(Icons.Default.Refresh, contentDescription = "Restart")
+                        }
+                    }
+                )
+            }
+
         }
     }
 }
 
 //TODO: potem skasować, przydatne do testowania
 fun main() = application {
-    Window(onCloseRequest = ::exitApplication, title = "Mastermind - Game") {
+    Window(
+        onCloseRequest = ::exitApplication,
+        title = "Mastermind - Game",
+        state = WindowState(width = 900.dp, height = 600.dp)
+    ) {
         app()
     }
 }

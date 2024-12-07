@@ -1,10 +1,24 @@
+val MAX_SEQ_LENGTH = 6
+val MIN_SEQ_LENGTH = 3
+val MAX_ATTEMPTS = 20
+val MIN_ATTEMPTS = 3
+val MAX_COLORS = 8
+val MIN_COLORS = 3
+
 class Settings(val sequenceLength: Int, val maxAttempts: Int, val colorsList: List<String>) {
     val numberOfColors = colorsList.size
     init {
-        require(sequenceLength in 3..6) { "Sequence length should be from 3 to 6" }
-        require(maxAttempts in 3..20) { "Maximum number of attempts should be from 1 to 20" }
-        require(numberOfColors in 3..8) { "Number of colors should be from 4 to 8" }
-        // check if colors are unique
-        require(colorsList.toSet().size == numberOfColors) { "Colors should be unique" }
+        require(sequenceLength in MIN_SEQ_LENGTH..MAX_SEQ_LENGTH) {
+            "Sequence length should be from $MIN_SEQ_LENGTH to $MAX_SEQ_LENGTH"
+        }
+        require(maxAttempts in MIN_ATTEMPTS..MAX_ATTEMPTS) {
+            "Maximum number of attempts should be from $MIN_ATTEMPTS to $MAX_ATTEMPTS"
+        }
+        require(numberOfColors in MIN_COLORS..MAX_COLORS) {
+            "Number of colors should be from $MIN_COLORS to $MAX_COLORS"
+        }
+        require(colorsList.toSet().size == numberOfColors) {
+            "Colors should be unique"
+        }
     }
 }

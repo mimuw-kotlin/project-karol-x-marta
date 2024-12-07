@@ -1,3 +1,6 @@
+import kotlin.text.get
+import kotlin.text.set
+
 class Player (private val sequenceLength: Int, private val colorsList: List<String>) {
     fun makeGuess(): List<String> {
         while (true) {
@@ -15,7 +18,7 @@ class Player (private val sequenceLength: Int, private val colorsList: List<Stri
         // TODO: sprawdzanie kolorów
         if (guess.size == sequenceLength) {
             for (i in guess.indices) {
-                guess[i] = guess[i].replaceFirstChar { char -> char.uppercase() }
+                guess[i] = guess[i].uppercase()
             }
             return true
         }
