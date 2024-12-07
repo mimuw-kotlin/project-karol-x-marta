@@ -7,7 +7,7 @@ class Game(private val settings: Settings, private val manualCode: String) {
         List(settings.sequenceLength) { settings.colorsList.random() }
     }
     val checker = Checker(secretCode)
-    val player = Player(settings.sequenceLength)
+    val player = Player(settings.sequenceLength, settings.colorsList)
     var attempts = 0
     var isSolved = false
 

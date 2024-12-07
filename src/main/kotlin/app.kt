@@ -12,21 +12,47 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlin.system.exitProcess
 import androidx.compose.ui.text.font.FontWeight
+import kotlin.collections.toMutableList
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import kotlin.div
 
 @Composable
 @Preview
 fun app() {
     var text by remember { mutableStateOf("") }
     var input by remember { mutableStateOf("") }
+    var placeholder by remember { mutableStateOf("Enter your guess (space-separated colors)") }
     var gameOver by remember { mutableStateOf(false) }
+
     // TODO: dodać możliwość zmiany ustawień gry
     val settings = Settings(sequenceLength = 4, maxAttempts = 10, colorsList = listOf("A", "B", "C", "D", "E", "F"))
     var game by remember { mutableStateOf(Game(settings, manualCode = "")) }
     val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
 
+    var startTime by remember { mutableStateOf<Long?>(null) }
+    var timer by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(startTime) {
+        while (startTime != null && !gameOver) {
+            delay(10L)
+            startTime?.let {
+                timer = System.currentTimeMillis() - it
+            }
+        }
+    }
+
     fun submitGuess() {
-        // TODO: dodać parsowanie inputu i jakis komunikat zeby sprobowac jeszcze raz
-        val guess = input.split(" ").map(String::trim)
+        if (startTime == null) {
+            startTime = System.currentTimeMillis()
+        }
+
+        var guess = input.split(" ").map(String::trim).toMutableList()
+        while (!game.player.validateGuess(guess, settings.colorsList)) {
+            input = ""
+            placeholder = "Your guess has bad format. Please enter ${settings.sequenceLength} colors separated by spaces."
+            return
+        }
         val feedback = game.checkGuess(guess)
         guesses.add(guess to feedback)
         if (game.isSolved) {
@@ -39,6 +65,7 @@ fun app() {
             text = "Try again. Attempts left: ${settings.maxAttempts - game.attempts}\n"
         }
         input = ""
+        placeholder = "Enter your guess (space-separated colors)"
     }
 
     fun resetGame() {
@@ -47,6 +74,8 @@ fun app() {
         gameOver = false
         guesses.clear()
         game = Game(settings, manualCode = "")
+        startTime = null
+        timer = 0L
     }
 
     MaterialTheme {
@@ -58,6 +87,10 @@ fun app() {
                     Text("Guess: ${guess.joinToString(", ")} - Feedback: $feedback")
                 }
             }
+            Text(
+                text = "Time: ${"%.3f".format(timer / 1000.0)}s",
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+            )
             if (gameOver) {
                 Row(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
@@ -79,7 +112,7 @@ fun app() {
                     TextField(
                         value = input,
                         onValueChange = { input = it },
-                        placeholder = { Text("Enter your guess (space-separated colors)") },
+                        placeholder = { Text(placeholder) },
                         modifier = Modifier.weight(1f).onKeyEvent {
                             if (it.key == Key.Enter) {
                                 submitGuess()

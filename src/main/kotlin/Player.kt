@@ -1,15 +1,24 @@
-class Player (private val sequenceLength: Int) {
+class Player (private val sequenceLength: Int, private val colorsList: List<String>) {
     fun makeGuess(): List<String> {
         while (true) {
             println("Enter your guess ($sequenceLength colors separated by spaces):")
             val input = readLine() ?: ""
-            val guess = input.split(" ")
-            if (guess.size == sequenceLength) {
-                return guess.map { it.replaceFirstChar { char -> char.uppercase() } }
+            val guess = input.split(" ").toMutableList()
+            if (validateGuess(guess, colorsList)) {
+                return guess
             }
-            else {
-                println("Wrong input. Please enter $sequenceLength colors separated by spaces.")
-            }
+            println("Wrong input. Please enter $sequenceLength colors separated by spaces.")
         }
+    }
+
+    fun validateGuess(guess: MutableList<String>, colorsList: List<String>): Boolean {
+        // TODO: sprawdzanie kolorów
+        if (guess.size == sequenceLength) {
+            for (i in guess.indices) {
+                guess[i] = guess[i].replaceFirstChar { char -> char.uppercase() }
+            }
+            return true
+        }
+        return false
     }
 }
