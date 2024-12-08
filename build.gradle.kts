@@ -34,10 +34,10 @@ kotlin {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClass.set("AppKt")
 }
 
-tasks.register<JavaExec>("runWithInput") {
+tasks.register<JavaExec>("runTerminal") {
     group = "application"
     mainClass.set("MainKt")
     classpath = sourceSets["main"].runtimeClasspath

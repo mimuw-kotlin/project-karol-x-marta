@@ -1,5 +1,3 @@
-import kotlin.text.get
-import kotlin.text.set
 
 class Player (private val sequenceLength: Int, private val colorsList: List<String>) {
     fun makeGuess(): List<String> {

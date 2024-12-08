@@ -1,11 +1,7 @@
-// src/main/kotlin/Game.kt
-import kotlin.system.measureTimeMillis
-class Game(private val settings: Settings, private val manualCode: String) {
-    private val secretCode: List<String> = if (manualCode.isNotEmpty()) {
-        manualCode.split(" ").map { it.trim() }
-    } else {
+
+class Game(private val settings: Settings) {
+    private val secretCode: List<String> =
         List(settings.sequenceLength) { settings.colorsList.random() }
-    }
     val checker = Checker(secretCode)
     val player = Player(settings.sequenceLength, settings.colorsList)
     var attempts = 0

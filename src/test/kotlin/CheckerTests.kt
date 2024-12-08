@@ -3,36 +3,6 @@ import kotlin.random.Random
 
 class CheckerTests {
 
-//    @Test
-//    fun checkerTest() {
-//        for (sequenceLength in MIN_SEQ_LENGTH..MAX_SEQ_LENGTH) {
-//            for (colors in MIN_COLORS..MAX_COLORS) {
-//                val code = List(sequenceLength) { Random.nextInt(0, colors).toString() }
-//                val guess = MutableList(sequenceLength){colors.toString()}
-//                val misplacedExpected = Random.nextInt(0, sequenceLength)
-//                val correctExpected = Random.nextInt(0, sequenceLength - misplacedExpected)
-//                val indexes = (0 until sequenceLength).toList()
-//                indexes.shuffled(Random)
-//                val notUsedIndexes = indexes.toMutableSet()
-//                val toUse = code.groupingBy { it }.eachCount()
-//                val iterator = notUsedIndexes.iterator()
-//                for (i in 0 until correctExpected) {
-//                    val index = iterator.next()
-//                    guess[index] = code[index]
-//                    toUse[code[index]] = toUse.getValue(code[index]) - 1
-//                    iterator.remove()
-//                }
-//
-//
-////                val guess2 = MutableList(sequenceLength - 1) { Random.nextInt(0, colors).toString() }
-////                val guess3 = MutableList(sequenceLength) { Random.nextInt(0, colors).toString() }
-////                assert(!player.validateGuess(guess, colorsList))
-////                assert(!player.validateGuess(guess2, colorsList))
-////                assert(player.validateGuess(guess3, colorsList))
-//            }
-//        }
-//    }
-
     @Test
     fun checkAllCorrect() {
         for (sequenceLength in MIN_SEQ_LENGTH..MAX_SEQ_LENGTH) {

@@ -47,7 +47,7 @@ fun app() {
     var colorsList by remember { mutableStateOf(listOf("A", "B", "C", "D", "E", "F")) }
 
     val settings = Settings(sequenceLength = sequenceLength, maxAttempts = maxAttempts, colorsList = colorsList)
-    var game by remember { mutableStateOf(Game(settings, manualCode = "")) }
+    var game by remember { mutableStateOf(Game(settings)) }
     val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
 
     var startTime by remember { mutableStateOf<Long?>(null) }
@@ -101,7 +101,7 @@ fun app() {
         input = ""
         gameOver = false
         guesses.clear()
-        game = Game(settings, manualCode = "")
+        game = Game(settings)
         startTime = null
         pausedTime = null
         timer = 0L
@@ -285,7 +285,6 @@ fun app() {
     }
 }
 
-//TODO: potem skasować, przydatne do testowania
 fun main() = application {
     ScoresManager.connect()
     ScoresManager.createScoresTable()
