@@ -15,8 +15,7 @@ class Player (private val sequenceLength: Int, private val colorsList: List<Stri
     }
 
     fun validateGuess(guess: MutableList<String>, colorsList: List<String>): Boolean {
-        // TODO: sprawdzanie kolorów
-        if (guess.size == sequenceLength) {
+        if (guess.size == sequenceLength && guess.all { it.uppercase() in colorsList }) {
             for (i in guess.indices) {
                 guess[i] = guess[i].uppercase()
             }

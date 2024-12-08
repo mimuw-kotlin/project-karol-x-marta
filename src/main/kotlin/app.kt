@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.ui.window.WindowState
 
 @Composable
@@ -31,6 +32,7 @@ fun app() {
     var placeholder by remember { mutableStateOf("Enter your guess (space-separated colors)") }
     var gameOver by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showScores by remember { mutableStateOf(false) }
     var isPaused by remember { mutableStateOf(false) }
 
     var sequenceLength by remember { mutableStateOf(4) }
@@ -59,7 +61,7 @@ fun app() {
             startTime = System.currentTimeMillis()
         }
 
-        var guess = input.split(" ").map(String::trim).toMutableList()
+        var guess = input.split(" ").map(String::trim).toMutableList() //trim chyba zbędne
         while (!game.player.validateGuess(guess, settings.colorsList)) {
             input = ""
             placeholder = "Your guess has bad format. Please enter ${settings.sequenceLength} colors separated by spaces."
@@ -70,6 +72,7 @@ fun app() {
         if (game.isSolved) {
             text = "Congratulations! You've guessed the sequence in ${game.attempts} attempts.\n"
             gameOver = true
+            ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, timer)
         } else if (game.isGameOver()) {
             text = "Game Over! The correct sequence was: ${game.getSecretCode().joinToString(", ")}\n"
             gameOver = true
@@ -144,6 +147,13 @@ fun app() {
                 }) {
                     Icon(Icons.Default.Settings, contentDescription = "Settings")
                 }
+
+                IconButton(onClick = {
+                    pausedTime = System.currentTimeMillis()
+                    showScores = true
+                }) {
+                    Icon(Icons.Filled.EmojiEvents, contentDescription = "Trophy")
+                }
             }
             if (gameOver) {
                 Row(
@@ -189,7 +199,7 @@ fun app() {
                         .fillMaxSize()
                         .background(Color.Gray.copy(alpha = 1f))
                 )
-                SettingsDialog(
+                settingsDialog(
                     sequenceLength = sequenceLength,
                     onSequenceLengthChange = { sequenceLength = it },
                     maxAttempts = maxAttempts,
@@ -208,6 +218,24 @@ fun app() {
                 )
             }
 
+            if (showScores) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Gray.copy(alpha = 1f))
+                )
+                scoresDialog(
+                    sequenceLength = sequenceLength,
+                    maxAttempts = maxAttempts,
+                    colorsNumber = colorsList.size,
+                    scoresManager = ScoresManager,
+                    onDismissRequest = {
+                        startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
+                        pausedTime = null
+                        showScores = false
+                    }
+                )
+            }
 
             if (isPaused) {
                 Box(
@@ -246,6 +274,8 @@ fun app() {
 
 //TODO: potem skasować, przydatne do testowania
 fun main() = application {
+    ScoresManager.connect()
+    ScoresManager.createScoresTable()
     Window(
         onCloseRequest = ::exitApplication,
         title = "Mastermind - Game",

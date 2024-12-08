@@ -1,45 +1,53 @@
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.*
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import kotlin.text.get
 
 @Composable
-fun settingsDialog(
-    sequenceLength: Int,
-    onSequenceLengthChange: (Int) -> Unit,
-    maxAttempts: Int,
-    onMaxAttemptsChange: (Int) -> Unit,
-    colorsList: List<String>,
-    onColorsListChange: (List<String>) -> Unit,
-    onDismissRequest: () -> Unit,
-    onApply: () -> Unit
+fun scoresDialog(
+    sequenceLength : Int,
+    maxAttempts : Int,
+    colorsNumber: Int,
+    scoresManager: ScoresManager,
+    onDismissRequest: () -> Unit
 ) {
     var selectedSequenceLength by remember { mutableStateOf(sequenceLength) }
     var selectedMaxAttempts by remember { mutableStateOf(maxAttempts) }
-    var selectedColorsList by remember { mutableStateOf(colorsList.joinToString(" ")) }
-    var errorMessage by remember { mutableStateOf(" ") }
-    var isInputValid by remember { mutableStateOf(true) }
-
-    fun validateColorsList(input: String): Boolean {
-        val colors = input.split(" ").map(String::trim)
-        return colors.all { it.matches(Regex("^[A-Z]+$")) }
-                && colors.size in MIN_COLORS..MAX_COLORS
-                && colors.toSet().size == colors.size
-    }
+    var selectedColorsNumber by remember { mutableStateOf(colorsNumber) }
+    var showScores by remember { mutableStateOf(false) }
+    var scores by remember { mutableStateOf(listOf<Double>()) }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("Game Settings") },
+        title = { Text("Scores") },
         text = {
             Column {
                 Text("Sequence Length\n")
@@ -48,7 +56,6 @@ fun settingsDialog(
                         onClick = {
                             if (selectedSequenceLength > MIN_SEQ_LENGTH) {
                                 selectedSequenceLength--
-                                onSequenceLengthChange(selectedSequenceLength)
                             }
                         },
                         enabled = selectedSequenceLength > MIN_SEQ_LENGTH
@@ -65,7 +72,6 @@ fun settingsDialog(
                         onClick = {
                             if (selectedSequenceLength < MAX_SEQ_LENGTH) {
                                 selectedSequenceLength++
-                                onSequenceLengthChange(selectedSequenceLength)
                             }
                         },
                         enabled = selectedSequenceLength < MAX_SEQ_LENGTH
@@ -82,7 +88,6 @@ fun settingsDialog(
                         onClick = {
                             if (selectedMaxAttempts > MIN_ATTEMPTS) {
                                 selectedMaxAttempts--
-                                onMaxAttemptsChange(selectedMaxAttempts)
                             }
                         },
                         enabled = selectedMaxAttempts > MIN_ATTEMPTS
@@ -99,7 +104,6 @@ fun settingsDialog(
                         onClick = {
                             if (selectedMaxAttempts < MAX_ATTEMPTS) {
                                 selectedMaxAttempts++
-                                onMaxAttemptsChange(selectedMaxAttempts)
                             }
                         },
                         enabled = selectedMaxAttempts < MAX_ATTEMPTS
@@ -110,52 +114,59 @@ fun settingsDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Colors List\n")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextField(
-                        value = selectedColorsList,
-                        onValueChange = {
-                            selectedColorsList = it
-                            isInputValid = validateColorsList(it.uppercase())
-                            if (isInputValid) {
-                                errorMessage = " "
-                                onColorsListChange(it.uppercase().split(" ").map(String::trim))
-                            } else {
-                                errorMessage = "Invalid format. Please enter colors separated by spaces."
+                Text("Colors Number\n")
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    IconButton(
+                        onClick = {
+                            if (selectedColorsNumber > MIN_COLORS) {
+                                selectedColorsNumber--
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .onFocusChanged { focusState ->
-                                if (!focusState.isFocused && !isInputValid) {
-                                    errorMessage = "Invalid format. Please enter colors separated by spaces."
-                                }
-                            },
-                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = {
-                            // Hide the keyboard when the user presses the Done button
-                        })
+                        enabled = selectedColorsNumber > MIN_COLORS
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Decrease")
+                    }
+                    TextField(
+                        value = selectedColorsNumber.toString(),
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.width(150.dp)
                     )
-                    IconButton(onClick = {
-                        selectedColorsList = colorsList.joinToString(" ")
-                        errorMessage = ""
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reset to previous value")
+                    IconButton(
+                        onClick = {
+                            if (selectedColorsNumber < MAX_COLORS) {
+                                selectedColorsNumber++
+                            }
+                        },
+                        enabled = selectedColorsNumber < MAX_COLORS
+                    ) {
+                        Icon(Icons.Default.ArrowForward, contentDescription = "Increase")
                     }
                 }
-                if (errorMessage.isNotEmpty()) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colors.error,
-                        style = MaterialTheme.typography.caption,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                    )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (showScores) {
+                    Column {
+                        Text("Scores for chosen parameters:")
+                        LazyColumn {
+                            items(scores.size) { index ->
+                                Text("${index + 1}. ${scores[index]}s")
+                            }
+                        }
+                    }
                 }
+
             }
         },
         confirmButton = {
-            Button(onClick = onApply, enabled = isInputValid) {
-                Text("Apply and Restart")
+            Button(
+                onClick = {
+                    scores = scoresManager.getFilteredScores(selectedSequenceLength, selectedMaxAttempts, selectedColorsNumber)
+                    showScores = true
+                }
+            ) {
+                Text("Show Scores")
             }
         },
         dismissButton = {

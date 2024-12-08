@@ -21,6 +21,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
     implementation("org.jetbrains.skiko:skiko-awt-runtime-linux-x64:0.7.77")
     testImplementation(kotlin("test"))
+    implementation("org.xerial:sqlite-jdbc:3.41.2.2")
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
 }
 
 tasks.test {
@@ -34,3 +36,12 @@ kotlin {
 application {
     mainClass.set("MainKt")
 }
+
+tasks.register<JavaExec>("runWithInput") {
+    group = "application"
+    mainClass.set("MainKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    standardInput = System.`in`
+    args = project.findProperty("args")?.toString()?.split(", ") ?: emptyList()
+}
+
