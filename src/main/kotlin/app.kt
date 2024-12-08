@@ -97,7 +97,7 @@ fun app() {
     }
 
     fun resetGame() {
-        text = "Enter your guess (space-separated colors):"
+        placeholder = "Enter your guess (space-separated colors)"
         input = ""
         gameOver = false
         guesses.clear()
