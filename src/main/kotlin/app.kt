@@ -24,6 +24,13 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.ui.window.WindowState
 
+val MAX_SEQ_LENGTH = 6
+val MIN_SEQ_LENGTH = 3
+val MAX_ATTEMPTS = 20
+val MIN_ATTEMPTS = 3
+val MAX_COLORS = 8
+val MIN_COLORS = 3
+
 @Composable
 @Preview
 fun app() {
@@ -47,12 +54,17 @@ fun app() {
     var pausedTime by remember { mutableStateOf<Long?>(null) }
     var timer by remember { mutableStateOf(0L) }
 
+    var gameWonTime by remember { mutableStateOf(0L) }
+
     LaunchedEffect(startTime, pausedTime) {
         while (startTime != null && !gameOver && pausedTime == null && !isPaused) {
             delay(10L)
             startTime?.let {
                 timer = System.currentTimeMillis() - it
             }
+        }
+        if (game.isSolved) {
+            timer = gameWonTime
         }
     }
 
@@ -71,8 +83,9 @@ fun app() {
         guesses.add(guess to feedback)
         if (game.isSolved) {
             text = "Congratulations! You've guessed the sequence in ${game.attempts} attempts.\n"
+            gameWonTime = timer
+            ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, gameWonTime)
             gameOver = true
-            ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, timer)
         } else if (game.isGameOver()) {
             text = "Game Over! The correct sequence was: ${game.getSecretCode().joinToString(", ")}\n"
             gameOver = true
@@ -97,7 +110,7 @@ fun app() {
 
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 30.dp, bottom = 16.dp, end = 275.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 30.dp, bottom = 16.dp, end = 295.dp)) {
                 Text(text, fontWeight = FontWeight.Bold)
                 Column {
                     Row {
@@ -279,7 +292,7 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "Mastermind - Game",
-        state = WindowState(width = 900.dp, height = 600.dp)
+        state = WindowState(width = 950.dp, height = 700.dp)
     ) {
         app()
     }

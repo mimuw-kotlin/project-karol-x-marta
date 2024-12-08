@@ -149,7 +149,7 @@ fun scoresDialog(
                 if (showScores) {
                     Column {
                         Text("Scores for chosen parameters:")
-                        LazyColumn {
+                        LazyColumn(modifier = Modifier.height(150.dp)) {
                             items(scores.size) { index ->
                                 Text("${index + 1}. ${scores[index]}s")
                             }

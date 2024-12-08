@@ -1,9 +1,3 @@
-val MAX_SEQ_LENGTH = 6
-val MIN_SEQ_LENGTH = 3
-val MAX_ATTEMPTS = 20
-val MIN_ATTEMPTS = 3
-val MAX_COLORS = 8
-val MIN_COLORS = 3
 
 class Settings(val sequenceLength: Int, val maxAttempts: Int, val colorsList: List<String>) {
     val numberOfColors = colorsList.size
