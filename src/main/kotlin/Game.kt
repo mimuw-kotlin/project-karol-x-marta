@@ -1,4 +1,3 @@
-
 class Game(private val settings: Settings) {
     private val secretCode: List<String> =
         List(settings.sequenceLength) { settings.colorsList.random() }

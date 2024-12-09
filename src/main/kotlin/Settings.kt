@@ -1,4 +1,3 @@
-
 class Settings(val sequenceLength: Int, val maxAttempts: Int, val colorsList: List<String>) {
     val numberOfColors = colorsList.size
     init {

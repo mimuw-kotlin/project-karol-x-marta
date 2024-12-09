@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
     kotlin("jvm") version "1.8.21"
     id("org.jetbrains.compose") version "1.5.0"
@@ -43,5 +45,15 @@ tasks.register<JavaExec>("runTerminal") {
     classpath = sourceSets["main"].runtimeClasspath
     standardInput = System.`in`
     args = project.findProperty("args")?.toString()?.split(", ") ?: emptyList()
+}
+
+tasks.register<Test>("runTests") {
+    group = "verification"
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = TestExceptionFormat.FULL
+        showStandardStreams = true
+    }
+    useJUnitPlatform()
 }
 

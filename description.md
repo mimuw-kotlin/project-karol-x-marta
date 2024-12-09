@@ -36,3 +36,5 @@ Przykładowe wywołanie: ./gradlew runTerminal -Pargs="-l, 4, -a, 10, -c, red bl
 Flagi są opcjonalne, domyślne wartości to: -l 4, -a 10, -c A B C D E F.
 
 Uruchamianie gry w wersji terminalowej ze względów estetycznych zalecamy jednak z poziomu IDE.
+
+Testy można uruchomić poprzez ./gradlew runTests.

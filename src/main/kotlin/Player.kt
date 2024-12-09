@@ -1,4 +1,3 @@
-
 class Player (private val sequenceLength: Int, private val colorsList: List<String>) {
     fun makeGuess(): List<String> {
         while (true) {

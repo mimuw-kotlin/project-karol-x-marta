@@ -73,7 +73,7 @@ fun app() {
             startTime = System.currentTimeMillis()
         }
 
-        var guess = input.split(" ").map(String::trim).toMutableList() //trim chyba zbędne
+        var guess = input.split(" ").map(String::trim).toMutableList()
         while (!game.player.validateGuess(guess, settings.colorsList)) {
             input = ""
             placeholder = "Your guess has bad format. Please enter ${settings.sequenceLength} colors separated by spaces."
