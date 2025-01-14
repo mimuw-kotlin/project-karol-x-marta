@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm") version "1.8.21"
     id("org.jetbrains.compose") version "1.5.0"
     application
+    id("org.jlleitschuh.gradle.ktlint") version "11.3.2"
 }
 
 group = "org.example"
@@ -57,3 +58,6 @@ tasks.register<Test>("runTests") {
     useJUnitPlatform()
 }
 
+ktlint {
+    disabledRules.set(setOf("no-wildcard-imports"))
+}

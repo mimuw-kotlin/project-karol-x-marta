@@ -1,28 +1,28 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.application
-import kotlin.system.exitProcess
-import androidx.compose.ui.text.font.FontWeight
-import kotlin.collections.toMutableList
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
-import kotlinx.coroutines.delay
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.ui.window.WindowState
+import androidx.compose.ui.window.application
+import kotlinx.coroutines.delay
+import kotlin.collections.toMutableList
+import kotlin.system.exitProcess
 
 val MAX_SEQ_LENGTH = 6
 val MIN_SEQ_LENGTH = 3
@@ -87,7 +87,7 @@ fun app() {
             ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, gameWonTime)
             gameOver = true
         } else if (game.isGameOver()) {
-            text = "Game Over! The correct sequence was: ${game.getSecretCode().joinToString(", ")}\n"
+            text = "Game Over! The correct sequence was: ${game.secretCode.joinToString(", ")}\n"
             gameOver = true
         } else {
             text = "Try again. Attempts left: ${settings.maxAttempts - game.attempts}\n"
@@ -142,8 +142,7 @@ fun app() {
                     ) {
                         Text("||", fontWeight = FontWeight.Bold)
                     }
-                }
-                else {
+                } else {
                     Button(
                         onClick = {
                             resetGame()
@@ -280,7 +279,6 @@ fun app() {
                     }
                 )
             }
-
         }
     }
 }

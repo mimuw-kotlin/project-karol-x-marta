@@ -1,5 +1,5 @@
 class Game(private val settings: Settings) {
-    private val secretCode: List<String> =
+    val secretCode: List<String> =
         List(settings.sequenceLength) { settings.colorsList.random() }
     val checker = Checker(secretCode)
     val player = Player(settings.sequenceLength, settings.colorsList)
@@ -17,17 +17,15 @@ class Game(private val settings: Settings) {
         return attempts >= settings.maxAttempts || isSolved
     }
 
-    fun getSecretCode(): List<String> {
-        return secretCode
-    }
-
     fun start() {
         println("Welcome to Mastermind!")
-        println("The secret code has been generated. It consists " +
+        println(
+            "The secret code has been generated. It consists " +
                 "of ${settings.sequenceLength} elements, " +
                 "each in one of colors: ${settings.colorsList}. " +
                 "You have ${settings.maxAttempts} attempts to guess it. " +
-                "Good luck!")
+                "Good luck!"
+        )
 
         val startTime = System.currentTimeMillis()
 

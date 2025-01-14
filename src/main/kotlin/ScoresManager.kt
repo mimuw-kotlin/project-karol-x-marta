@@ -34,13 +34,13 @@ object ScoresManager {
 
     fun insertScore(sequenceLength: Int, maxAttempts: Int, colorsNumber: Int, time: Long) {
         val record = "INSERT INTO scores(sequenceLength, maxAttempts, colorsNumber, time)" +
-                "VALUES(?, ?, ?, ?)"
+            "VALUES(?, ?, ?, ?)"
         try {
             val preparedStatement = connection?.prepareStatement(record)
             preparedStatement?.setInt(1, sequenceLength)
             preparedStatement?.setInt(2, maxAttempts)
             preparedStatement?.setInt(3, colorsNumber)
-            preparedStatement?.setDouble (4, time.toDouble()/1000.0)
+            preparedStatement?.setDouble(4, time.toDouble() / 1000.0)
             preparedStatement?.executeUpdate()
         } catch (e: SQLException) {
             println(e.message)
