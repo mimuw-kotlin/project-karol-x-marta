@@ -105,7 +105,7 @@ fun app() {
             ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, gameWonTime)
             gameOver = true
         } else if (game.isGameOver()) {
-            text = "Game Over! The correct sequence was: ${game.secretCode.joinToString(", ")}\n"
+            text = "Game Over! \n"
             gameOver = true
         } else {
             text = "Try again. Attempts left: ${settings.maxAttempts - game.attempts}\n"
@@ -129,6 +129,10 @@ fun app() {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 30.dp, bottom = 16.dp, end = 295.dp)) {
                 Text(text, fontWeight = FontWeight.Bold)
                 PreviousGuesses(guesses = guesses)
+                if (gameOver) {
+                    Text("The secret code was: \n", fontWeight = FontWeight.Bold)
+                    DisplayColors(game.secretCode)
+                }
             }
             Row(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
                 Text(
@@ -282,20 +286,27 @@ fun PreviousGuesses(guesses: List<Pair<List<String>, Feedback>>) {
         guesses.forEach { (guess, feedback) ->
             Column {
                 Row {
-                    guess.forEach { color ->
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(ALL_COLORS[color] ?: Color.White)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                    }
+                    DisplayColors(guess)
                     Spacer(modifier = Modifier.width(20.dp))
                     Text(feedback.toString())
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }
+        }
+    }
+}
+
+@Composable
+fun DisplayColors(guess: List<String>) {
+    Row {
+        guess.forEach { color ->
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(ALL_COLORS[color] ?: Color.White)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
         }
     }
 }
