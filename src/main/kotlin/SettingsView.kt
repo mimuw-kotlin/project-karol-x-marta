@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlin.text.contains
+import java.awt.Color
 
 @Composable
 fun settingsDialog(
@@ -25,8 +28,13 @@ fun settingsDialog(
     var selectedSequenceLength by remember { mutableStateOf(sequenceLength) }
     var selectedMaxAttempts by remember { mutableStateOf(maxAttempts) }
     var selectedColorsList by remember { mutableStateOf(colorsList.joinToString(" ")) }
-    var errorMessage by remember { mutableStateOf(" ") }
+ //   var errorMessage by remember { mutableStateOf(" ") }
     var isInputValid by remember { mutableStateOf(true) }
+
+    var showError by remember { mutableStateOf(false) }
+
+    var selectedColors by remember { mutableStateOf(colorsList) }
+    val allColors = listOf("A", "B", "C", "D", "E", "F", "G", "H")
 
     fun validateColorsList(input: List<String>): Boolean {
         val colors = input // .split(" ").map(String::trim)
@@ -68,48 +76,90 @@ fun settingsDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Colors List\n")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextField(
-                        value = selectedColorsList,
-                        onValueChange = {
-                            selectedColorsList = it
-                            val listOfColors = it.uppercase().split(" ").map(String::trim)
-                            isInputValid = validateColorsList(listOfColors)
-                            if (isInputValid) {
-                                errorMessage = " "
-                                onColorsListChange(listOfColors)
-                            } else {
-                                errorMessage = "Invalid format. Please enter colors separated by spaces."
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .onFocusChanged { focusState ->
-                                if (!focusState.isFocused && !isInputValid) {
-                                    errorMessage = "Invalid format. Please enter colors separated by spaces."
+                Text("Colors \n")
+
+
+
+                Row {
+                    allColors.forEach { color ->
+                        val isChecked = selectedColors.contains(color)
+                        val canUncheck = selectedColors.size > MIN_COLORS
+
+                        Checkbox(
+                            checked = isChecked,
+                            onCheckedChange = {
+                                if (isChecked && canUncheck) {
+                                    selectedColors = selectedColors - color
+                                } else if (!isChecked) {
+                                    selectedColors = selectedColors + color
+                                } else {
+                                    showError = true
                                 }
+                                onColorsListChange(selectedColors)
                             },
-                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = {
-                            // Hide the keyboard when the user presses the Done button
-                        })
-                    )
-                    IconButton(onClick = {
-                        selectedColorsList = colorsList.joinToString(" ")
-                        errorMessage = ""
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Reset to previous value")
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color,
+                                uncheckedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color
+                            )
+                        )
                     }
                 }
-                if (errorMessage.isNotEmpty()) {
+
+                if (showError) {
                     Text(
-                        text = errorMessage,
+                        text = "You must select at least $MIN_COLORS colors.",
                         color = MaterialTheme.colors.error,
                         style = MaterialTheme.typography.caption,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                     )
+
+                    LaunchedEffect(Unit) {
+                        delay(1000L)
+                        showError = false
+                    }
                 }
+
+//                Row(verticalAlignment = Alignment.CenterVertically) {
+//                    TextField(
+//                        value = selectedColorsList,
+//                        onValueChange = {
+//                            selectedColorsList = it
+//                            val listOfColors = it.uppercase().split(" ").map(String::trim)
+//                            isInputValid = validateColorsList(listOfColors)
+//                            if (isInputValid) {
+//                                errorMessage = " "
+//                                onColorsListChange(listOfColors)
+//                            } else {
+//                                errorMessage = "Invalid format. Please enter colors separated by spaces."
+//                            }
+//                        },
+//                        modifier = Modifier
+//                            .fillMaxWidth(0.9f)
+//                            .onFocusChanged { focusState ->
+//                                if (!focusState.isFocused && !isInputValid) {
+//                                    errorMessage = "Invalid format. Please enter colors separated by spaces."
+//                                }
+//                            },
+//                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+//                        keyboardActions = KeyboardActions(onDone = {
+//                            // Hide the keyboard when the user presses the Done button
+//                        })
+//                    )
+//                    IconButton(onClick = {
+//                        selectedColorsList = colorsList.joinToString(" ")
+//                        errorMessage = ""
+//                    }) {
+//                        Icon(Icons.Default.Refresh, contentDescription = "Reset to previous value")
+//                    }
+//                }
+//                if (errorMessage.isNotEmpty()) {
+//                    Text(
+//                        text = errorMessage,
+//                        color = MaterialTheme.colors.error,
+//                        style = MaterialTheme.typography.caption,
+//                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+//                    )
+//                }
             }
         },
         confirmButton = {

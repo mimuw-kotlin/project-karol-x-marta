@@ -12,9 +12,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -23,6 +20,8 @@ import androidx.compose.ui.window.application
 import kotlinx.coroutines.delay
 import kotlin.collections.toMutableList
 import kotlin.system.exitProcess
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 
 val MAX_SEQ_LENGTH = 6
 val MIN_SEQ_LENGTH = 3
@@ -31,20 +30,44 @@ val MIN_ATTEMPTS = 3
 val MAX_COLORS = 8
 val MIN_COLORS = 3
 
+
+enum class ColorByName(val color: Color) {
+    RED(Color(0xffff3333)),
+    GREEN(Color(0xff00c853)),
+    BLUE(Color(0xff3232cd)),
+    ORANGE(Color(0xffff9800)),
+    PINK(Color(0xffff80ab)),
+    LIGHT_BLUE(Color(0xff00ccff)),
+    BROWN(Color(0xff795548)),
+    PURPLE(Color(0xffba68c8));
+}
+
+val ALL_COLORS = mapOf(
+    "A" to ColorByName.RED.color,
+    "B" to ColorByName.GREEN.color,
+    "C" to ColorByName.BLUE.color,
+    "D" to ColorByName.ORANGE.color,
+    "E" to ColorByName.PINK.color,
+    "F" to ColorByName.LIGHT_BLUE.color,
+    "G" to ColorByName.BROWN.color,
+    "H" to ColorByName.PURPLE.color
+)
+
+
 @Composable
 @Preview
 fun app() {
     var text by remember { mutableStateOf("") }
-    var input by remember { mutableStateOf("") }
-    var placeholder by remember { mutableStateOf("Enter your guess (space-separated colors)") }
     var gameOver by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showScores by remember { mutableStateOf(false) }
     var isPaused by remember { mutableStateOf(false) }
+    var resetInput by remember { mutableStateOf(false) }
 
     var sequenceLength by remember { mutableStateOf(4) }
     var maxAttempts by remember { mutableStateOf(10) }
     var colorsList by remember { mutableStateOf(listOf("A", "B", "C", "D", "E", "F")) }
+    var currentGuess by remember { mutableStateOf(List(0) { "" }) }
 
     val settings = Settings(sequenceLength = sequenceLength, maxAttempts = maxAttempts, colorsList = colorsList)
     var game by remember { mutableStateOf(Game(settings)) }
@@ -73,12 +96,7 @@ fun app() {
             startTime = System.currentTimeMillis()
         }
 
-        var guess = input.split(" ").map(String::trim).toMutableList()
-        while (!game.player.validateGuess(guess, settings.colorsList)) {
-            input = ""
-            placeholder = "Your guess has bad format. Please enter ${settings.sequenceLength} colors separated by spaces."
-            return
-        }
+        var guess = currentGuess.toMutableList()
         val feedback = game.checkGuess(guess)
         guesses.add(guess to feedback)
         if (game.isSolved) {
@@ -92,13 +110,10 @@ fun app() {
         } else {
             text = "Try again. Attempts left: ${settings.maxAttempts - game.attempts}\n"
         }
-        input = ""
-        placeholder = "Enter your guess (space-separated colors)"
     }
 
     fun resetGame() {
-        placeholder = "Enter your guess (space-separated colors)"
-        input = ""
+        text = ""
         gameOver = false
         guesses.clear()
         game = Game(settings)
@@ -106,26 +121,14 @@ fun app() {
         pausedTime = null
         timer = 0L
         isPaused = false
+        resetInput = !resetInput
     }
 
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 30.dp, bottom = 16.dp, end = 295.dp)) {
                 Text(text, fontWeight = FontWeight.Bold)
-                Column {
-                    Row {
-                        if (!guesses.isEmpty()) {
-                            Text("Guess", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            Text("Feedback", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                        }
-                    }
-                    guesses.forEach { (guess, feedback) ->
-                        Row {
-                            Text(guess.joinToString(", "), modifier = Modifier.weight(1f))
-                            Text(feedback.toString(), modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
+                PreviousGuesses(guesses = guesses)
             }
             Row(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
                 Text(
@@ -185,23 +188,12 @@ fun app() {
                     modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextField(
-                        value = input,
-                        onValueChange = { input = it },
-                        placeholder = { Text(placeholder) },
-                        modifier = Modifier.weight(1f).onKeyEvent {
-                            if (it.key == Key.Enter) {
-                                submitGuess()
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = { submitGuess() }) {
-                        Text("Submit")
-                    }
+                    GuessInput(
+                        colorsList = settings.colorsList,
+                        onSubmitGuess = { guess ->
+                        currentGuess = guess
+                        submitGuess()
+                    }, guessSize = settings.sequenceLength, reset = resetInput)
                 }
             }
 
@@ -283,13 +275,39 @@ fun app() {
     }
 }
 
+
+@Composable
+fun PreviousGuesses(guesses: List<Pair<List<String>, Feedback>>) {
+    Column {
+        guesses.forEach { (guess, feedback) ->
+            Column {
+                Row {
+                    guess.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(ALL_COLORS[color] ?: Color.White)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(feedback.toString())
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
+    }
+}
+
+
 fun main() = application {
     ScoresManager.connect()
     ScoresManager.createScoresTable()
     Window(
         onCloseRequest = ::exitApplication,
         title = "Mastermind - Game",
-        state = WindowState(width = 950.dp, height = 700.dp)
+        state = WindowState(width = 950.dp, height = 900.dp)
     ) {
         app()
     }
