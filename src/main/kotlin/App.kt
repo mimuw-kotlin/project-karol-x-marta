@@ -7,6 +7,8 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -22,6 +24,16 @@ import kotlin.collections.toMutableList
 import kotlin.system.exitProcess
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.AnnotatedString
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import androidx.compose.ui.platform.LocalClipboardManager
+import java.io.IOException
+
 
 val MAX_SEQ_LENGTH = 6
 val MIN_SEQ_LENGTH = 3
@@ -53,34 +65,70 @@ val ALL_COLORS = mapOf(
     "H" to ColorByName.PURPLE.color
 )
 
+enum class DialogState {
+    OFF,
+    SHOW_SETTINGS,
+    SHOW_SCORES,
+    IS_PAUSED,
+    SHOW_SERVER_ERROR,
+    SHOW_CODE_ERROR,
+    IS_LOADING,
+    SHOW_MULTIPLAYER_MODES,
+    SHOW_JOIN_GAME_FIELD,
+    SHOW_HOST_GAME_FIELD,
+    SHOW_GAME_RESULTS,
+    SHOW_WAITING_FOR_RESULTS,
+    SERVER_DISCONNECTED
+}
+
+val SERVER_HOST = "localhost"
+val SERVER_PORT = 12345
+
+val DEFAULT_SETTINGS = Settings(sequenceLength = 4, maxAttempts = 10, colorsList = listOf("A", "B", "C", "D", "E", "F"))
+
+
 
 @Composable
 @Preview
 fun app() {
-    var text by remember { mutableStateOf("") }
-    var gameOver by remember { mutableStateOf(false) }
-    var showSettings by remember { mutableStateOf(false) }
-    var showScores by remember { mutableStateOf(false) }
-    var isPaused by remember { mutableStateOf(false) }
-    var resetInput by remember { mutableStateOf(false) }
-
+    // Settings
     var sequenceLength by remember { mutableStateOf(4) }
     var maxAttempts by remember { mutableStateOf(10) }
     var colorsList by remember { mutableStateOf(listOf("A", "B", "C", "D", "E", "F")) }
+    val settings = Settings(sequenceLength = sequenceLength, maxAttempts = maxAttempts, colorsList = colorsList)
+
+    // GUI
+    var text by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf<DialogState>(DialogState.OFF) }
+    var resetInput by remember { mutableStateOf(false) }
+
+    // Game Logic
+    var game by remember { mutableStateOf(Game(settings)) }
+    var gameOver by remember { mutableStateOf(false) }
+    val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
     var currentGuess by remember { mutableStateOf(List(0) { "" }) }
 
-    val settings = Settings(sequenceLength = sequenceLength, maxAttempts = maxAttempts, colorsList = colorsList)
-    var game by remember { mutableStateOf(Game(settings)) }
-    val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
-
+    // Timer
     var startTime by remember { mutableStateOf<Long?>(null) }
     var pausedTime by remember { mutableStateOf<Long?>(null) }
     var timer by remember { mutableStateOf(0L) }
-
     var gameWonTime by remember { mutableStateOf(0L) }
 
-    LaunchedEffect(startTime, pausedTime) {
-        while (startTime != null && !gameOver && pausedTime == null && !isPaused) {
+    // Multiplayer Mode
+    var isMultiplayer by remember { mutableStateOf(false) }
+    var gameCode by remember { mutableStateOf<String?>(null) }
+    var joinGameCode by remember { mutableStateOf("") }
+    var isHost by remember { mutableStateOf(true) }
+    var client: GameClient? by remember { mutableStateOf(null) }
+    var results by remember { mutableStateOf("") }
+
+    val clipboardManager = LocalClipboardManager.current
+
+
+    LaunchedEffect(startTime, pausedTime, state, ) {
+        while (startTime != null && !gameOver && pausedTime == null &&
+            state != DialogState.IS_PAUSED && state != DialogState.SERVER_DISCONNECTED) {
+
             delay(10L)
             startTime?.let {
                 timer = System.currentTimeMillis() - it
@@ -88,6 +136,51 @@ fun app() {
         }
         if (game.isSolved) {
             timer = gameWonTime
+        }
+    }
+
+    fun endMultiplayerGame(time: Long, isWin: Boolean) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                client?.submitResult(GameResult(isWin, game.attempts, time))
+                state = DialogState.SHOW_WAITING_FOR_RESULTS
+                val response = client?.receiveResults()
+                withContext(Dispatchers.Main) {
+                    if (response != null) {
+                        results = response
+                        state = DialogState.SHOW_GAME_RESULTS
+                        println("Results: $results")
+                    } else {
+                        println("Error: Received null response from server")
+                        state = DialogState.SHOW_SERVER_ERROR
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    state = DialogState.SHOW_SERVER_ERROR
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    state = DialogState.SHOW_SERVER_ERROR
+                }
+            }
+        }
+    }
+
+    fun closeSession() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                client?.let {
+                    it.output.close()
+                    it.input.close()
+                    it.socket.close()
+                }
+                client = null
+            } catch (e: IOException) {
+                println("IOException: ${e.message}")
+            } catch (e: Exception) {
+                println("Exception: ${e.message}")
+            }
         }
     }
 
@@ -102,10 +195,12 @@ fun app() {
         if (game.isSolved) {
             text = "Congratulations! You've guessed the sequence in ${game.attempts} attempts.\n"
             gameWonTime = timer
+            if (isMultiplayer) endMultiplayerGame(gameWonTime, true)
             ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, gameWonTime)
             gameOver = true
         } else if (game.isGameOver()) {
             text = "Game Over! \n"
+            if (isMultiplayer) endMultiplayerGame(timer, false)
             gameOver = true
         } else {
             text = "Try again. Attempts left: ${settings.maxAttempts - game.attempts}\n"
@@ -120,8 +215,129 @@ fun app() {
         startTime = null
         pausedTime = null
         timer = 0L
-        isPaused = false
         resetInput = !resetInput
+        isMultiplayer = false
+        isHost = false
+        state = DialogState.OFF
+    }
+
+    fun resetToStartMultiplayer(secret : List<String>?) {
+        text = ""
+        gameOver = false
+        guesses.clear()
+        game = Game(DEFAULT_SETTINGS, secret)
+        sequenceLength = DEFAULT_SETTINGS.sequenceLength
+        maxAttempts = DEFAULT_SETTINGS.maxAttempts
+        colorsList = DEFAULT_SETTINGS.colorsList
+        startTime = System.currentTimeMillis()
+        pausedTime = null
+        timer = 0L
+        resetInput = !resetInput
+        state = DialogState.OFF
+    }
+
+    fun startMultiplayerGameAsHost() {
+        state = DialogState.IS_LOADING
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                println("Attempting to connect to the server...")
+
+                client = GameClient(
+                    SERVER_HOST,
+                    SERVER_PORT,
+                    onDisconnection = { state = DialogState.SERVER_DISCONNECTED }
+                )
+                withTimeout(5000L) {
+                    client?.connect()
+                }
+
+                val response = client?.createGame()
+                withContext(Dispatchers.Main) {
+                    if (response != null) {
+                        gameCode = response
+                        println("Game code received: $gameCode")
+
+                        state = DialogState.SHOW_HOST_GAME_FIELD
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val secretStr = client?.receiveSecretCode()
+                                resetToStartMultiplayer(secretStr?.split(" ") ?: listOf())
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    state = DialogState.SHOW_SERVER_ERROR
+                                }
+                            }
+                        }
+
+                    } else {
+                        state = DialogState.SHOW_SERVER_ERROR
+                        isMultiplayer = false
+                        println("Error: Response is null")
+
+                    }
+                    state = DialogState.OFF
+                }
+            } catch (e: TimeoutCancellationException) {
+                withContext(Dispatchers.Main) {
+                    state = DialogState.SHOW_SERVER_ERROR
+                    isMultiplayer = false
+                    println("Error: Connection timed out")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    state = DialogState.SHOW_SERVER_ERROR
+                    isMultiplayer = false
+                }
+            }
+        }
+
+
+    }
+
+    fun joinMultiplayerGame() {
+        state = DialogState.IS_LOADING
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                println("Attempting to connect to the server...")
+
+                client = GameClient(
+                    SERVER_HOST,
+                    SERVER_PORT,
+                    onDisconnection = { state = DialogState.SERVER_DISCONNECTED }
+                )
+                withTimeout(5000L) {
+                    client?.connect()
+                }
+
+                val success = client?.joinGame(joinGameCode) == true
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        println("Successfully joined the game with code: $joinGameCode")
+                        val secretStr = client?.receiveSecretCode()
+                        resetToStartMultiplayer(secretStr?.split(" ") ?: listOf())
+
+                    } else {
+                        state = DialogState.SHOW_CODE_ERROR
+                        println("Error: Invalid game code or game full")
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                withContext(Dispatchers.Main) {
+                    state = DialogState.SHOW_SERVER_ERROR
+                    println("Error: Connection timed out")
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    state = DialogState.SHOW_SERVER_ERROR
+                    println("IOException: ${e.message}")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    state = DialogState.SHOW_SERVER_ERROR
+                    println("Exception: ${e.message}")
+                }
+            }
+        }
     }
 
     MaterialTheme {
@@ -139,47 +355,75 @@ fun app() {
                     text = "Time: ${"%.3f".format(timer / 1000.0)} s  ",
                     modifier = Modifier.align(Alignment.CenterVertically)
                 )
-                if (!gameOver) {
-                    Button(
-                        onClick = {
-                            pausedTime = System.currentTimeMillis()
-                            isPaused = true
-                        },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
-                    ) {
-                        Text("||", fontWeight = FontWeight.Bold)
+
+                if (!isMultiplayer) {
+
+                    if (!gameOver) {
+                        Button(
+                            onClick = {
+                                pausedTime = System.currentTimeMillis()
+                                state = DialogState.IS_PAUSED
+                            },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
+                        ) {
+                            Text("||", fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                resetGame()
+                            },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
+                        ) { Icon(Icons.Default.Refresh, contentDescription = "Restart") }
                     }
-                } else {
-                    Button(
-                        onClick = {
+
+                    IconButton(onClick = {
+                        pausedTime = System.currentTimeMillis()
+                        state = DialogState.SHOW_SETTINGS
+                    }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+
+                    IconButton(onClick = {
+                        pausedTime = System.currentTimeMillis()
+                        state = DialogState.SHOW_SCORES
+                    }) {
+                        Icon(Icons.Filled.EmojiEvents, contentDescription = "Trophy")
+                    }
+                }
+
+                IconButton(
+                    onClick = {
+                        isMultiplayer = !isMultiplayer
+                        if (isMultiplayer) {
+                            state = DialogState.SHOW_MULTIPLAYER_MODES
+                        }
+                        else if (client != null) {
+                            closeSession()
                             resetGame()
-                        },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Restart")
+                        }
+                    }
+                ) {
+                    if (isMultiplayer) {
+                        Icon(Icons.Default.Person, contentDescription = "Single Player")
+                    } else {
+                        Icon(Icons.Default.Group, contentDescription = "Multiplayer")
                     }
                 }
 
-                IconButton(onClick = {
-                    pausedTime = System.currentTimeMillis()
-                    showSettings = true
-                }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Settings")
-                }
 
-                IconButton(onClick = {
-                    pausedTime = System.currentTimeMillis()
-                    showScores = true
-                }) {
-                    Icon(Icons.Filled.EmojiEvents, contentDescription = "Trophy")
-                }
             }
             if (gameOver) {
                 Row(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(onClick = { resetGame() }) {
+                    Button(
+                        onClick = {
+                            if (isMultiplayer) closeSession()
+                            resetGame()
+                        }
+                    ) {
                         Text("New Game")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -195,90 +439,263 @@ fun app() {
                     GuessInput(
                         colorsList = settings.colorsList,
                         onSubmitGuess = { guess ->
-                        currentGuess = guess
-                        submitGuess()
-                    }, guessSize = settings.sequenceLength, reset = resetInput)
+                            currentGuess = guess
+                            submitGuess()
+                        }, guessSize = settings.sequenceLength, reset = resetInput
+                    )
                 }
             }
 
-            if (showSettings) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Gray.copy(alpha = 1f))
-                )
-                settingsDialog(
-                    sequenceLength = sequenceLength,
-                    onSequenceLengthChange = { sequenceLength = it },
-                    maxAttempts = maxAttempts,
-                    onMaxAttemptsChange = { maxAttempts = it },
-                    colorsList = colorsList,
-                    onColorsListChange = { colorsList = it },
-                    onDismissRequest = {
-                        startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
-                        pausedTime = null
-                        showSettings = false
-                    },
-                    onApply = {
-                        resetGame()
-                        showSettings = false
-                    }
-                )
-            }
 
-            if (showScores) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Gray.copy(alpha = 1f))
-                )
-                scoresDialog(
-                    sequenceLength = sequenceLength,
-                    maxAttempts = maxAttempts,
-                    colorsNumber = colorsList.size,
-                    scoresManager = ScoresManager,
-                    onDismissRequest = {
-                        startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
-                        pausedTime = null
-                        showScores = false
-                    }
-                )
-            }
-
-            if (isPaused) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Gray.copy(alpha = 1f))
-                )
-                AlertDialog(
-                    onDismissRequest = { isPaused = false },
-                    title = { Text("Game Paused") },
-                    confirmButton = {
-                        Button(onClick = {
+            // Dialogs
+            when (state) {
+                DialogState.SHOW_SETTINGS -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Gray.copy(alpha = 1f))
+                    )
+                    settingsDialog(
+                        sequenceLength = sequenceLength,
+                        onSequenceLengthChange = { sequenceLength = it },
+                        maxAttempts = maxAttempts,
+                        onMaxAttemptsChange = { maxAttempts = it },
+                        colorsList = colorsList,
+                        onColorsListChange = { colorsList = it },
+                        onDismissRequest = {
                             startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
                             pausedTime = null
-                            isPaused = false
-                        }) {
-                            Text("Play")
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Play")
-                        }
-                    },
-                    dismissButton = {
-                        Button(onClick = {
+                            state = DialogState.OFF
+                        },
+                        onApply = {
                             resetGame()
-                            isPaused = false
-                        }) {
-                            Text("Restart")
-                            Icon(Icons.Default.Refresh, contentDescription = "Restart")
                         }
-                    }
-                )
+                    )
+                }
+
+                DialogState.SHOW_SCORES -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Gray.copy(alpha = 1f))
+                    )
+                    scoresDialog(
+                        sequenceLength = sequenceLength,
+                        maxAttempts = maxAttempts,
+                        colorsNumber = colorsList.size,
+                        scoresManager = ScoresManager,
+                        onDismissRequest = {
+                            startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
+                            pausedTime = null
+                            state = DialogState.OFF
+                        }
+                    )
+                }
+
+                DialogState.IS_PAUSED -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Gray.copy(alpha = 1f))
+                    )
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Game Paused") },
+                        confirmButton = {
+                            Button(onClick = {
+                                startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
+                                pausedTime = null
+                                state = DialogState.OFF
+                            }) {
+                                Text("Play")
+                                Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+                            }
+                        },
+                        dismissButton = {
+                            Button(onClick = {
+                                resetGame()
+                                state = DialogState.OFF
+                            }) {
+                                Text("Restart")
+                                Icon(Icons.Default.Refresh, contentDescription = "Restart")
+                            }
+                        }
+                    )
+                }
+
+                DialogState.SHOW_SERVER_ERROR -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Error") },
+                        text = { Text("Server is unavailable. Please try again later.") },
+                        confirmButton = {
+                            Button(onClick = {
+                                state = DialogState.OFF
+                                isMultiplayer = false
+                            }) { Text("OK") }
+                        }
+                    )
+                }
+
+                DialogState.SHOW_CODE_ERROR -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Error") },
+                        text = { Text("Invalid code or game full.") },
+                        confirmButton = {
+                            Button(onClick = {
+                                state = DialogState.OFF
+                                isMultiplayer = false
+                            }) { Text("OK") }
+                        }
+                    )
+                }
+
+                DialogState.SHOW_MULTIPLAYER_MODES -> {
+                    AlertDialog(
+                        onDismissRequest = {
+                            state = DialogState.OFF
+                            isMultiplayer = false
+                        },
+                        title = { Text("Multiplayer Mode") },
+                        text = { Text("") },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    isHost = true
+                                    startMultiplayerGameAsHost()
+                                }
+                            ) { Text("Host Game") }
+                            Button(
+                                onClick = {
+                                    state = DialogState.SHOW_JOIN_GAME_FIELD
+                                    isHost = false
+                                }
+                            ) { Text("Join Game") }
+                        }
+                    )
+                }
+
+                DialogState.SHOW_HOST_GAME_FIELD -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) { Text("Game Code\n") }
+                        },
+                        text = {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$gameCode",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.h4,
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = {
+                                clipboardManager.setText(AnnotatedString(gameCode ?: ""))
+                            }) { Text("Copy code") }
+                            Button(onClick = { resetGame() }) { Text("Exit") }
+                        }
+                    )
+
+                }
+
+                DialogState.SHOW_JOIN_GAME_FIELD -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Join Game") },
+                        text = {
+                            TextField(
+                                value = joinGameCode,
+                                onValueChange = { joinGameCode = it },
+                                label = { Text("Enter game code") }
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    state = DialogState.OFF
+                                    joinMultiplayerGame()
+                                }
+                            ) { Text("Join") }
+                            Button(onClick = { resetGame() }) { Text("Exit") }
+                        }
+                    )
+                }
+
+                DialogState.IS_LOADING -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Loading") },
+                        text = {
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .background(Color.White, shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) { CircularProgressIndicator() }
+                        },
+                        buttons = {}
+                    )
+                }
+
+                DialogState.SHOW_WAITING_FOR_RESULTS -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Waiting for other player") },
+                        text = {
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .background(Color.White, shape = CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) { CircularProgressIndicator() }
+                        },
+                        buttons = {}
+                    )
+                }
+
+                DialogState.SHOW_GAME_RESULTS -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Game Results") },
+                        text = {
+                            Text(results)
+                        },
+                        confirmButton = {
+                            Button(onClick = { state = DialogState.OFF }) { Text("OK") }
+                        }
+                    )
+                }
+
+                DialogState.SERVER_DISCONNECTED -> {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Disconnected") },
+                        text = {
+                            Text("The server or the other player has disconnected.")
+                        },
+                        confirmButton = {
+                            Button(onClick = {
+                                state = DialogState.OFF
+                                resetGame()
+                            }) { Text("OK") }
+                        }
+                    )
+                }
+
+                DialogState.OFF -> {}
             }
         }
     }
 }
-
 
 @Composable
 fun PreviousGuesses(guesses: List<Pair<List<String>, Feedback>>) {

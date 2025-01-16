@@ -99,10 +99,13 @@ fun GuessInput(
             }
             Spacer(modifier = Modifier.width(8.dp))
         }
-        Button(onClick = {
+        Button(
+            onClick = {
             onSubmitGuess(currentGuess)
             currentGuess = List(guessSize) { "" }
-        }) {
+            },
+            // TODO: odkomentowac - enabled = currentGuess.none { it.isEmpty() }
+        ) {
             Text("Submit")
         }
     }

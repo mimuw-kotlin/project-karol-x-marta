@@ -1,5 +1,5 @@
-class Game(private val settings: Settings) {
-    val secretCode: List<String> =
+class Game(private val settings: Settings, val secret: List<String>? = null) {
+    var secretCode: List<String> = secret ?:
         List(settings.sequenceLength) { settings.colorsList.random() }
     val checker = Checker(secretCode)
     val player = Player(settings.sequenceLength, settings.colorsList)
