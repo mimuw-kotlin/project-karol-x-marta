@@ -124,14 +124,18 @@ fun app() {
     var isHost by remember { mutableStateOf(true) }
     var client: GameClient? by remember { mutableStateOf(null) }
     var results by remember { mutableStateOf("") }
-    var timeOuted by remember { mutableStateOf(AtomicBoolean(false)) }
+    var timeOuted by remember { mutableStateOf(false) }
+    var areResultsSent by remember { mutableStateOf(false) }
 
     val clipboardManager = LocalClipboardManager.current
 
+    @Synchronized
     fun endMultiplayerGame(time: Long, isWin: Boolean) {
+        if (areResultsSent) return
+        areResultsSent = true
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (timeOuted.get())
+                if (timeOuted)
                     client?.sendTimeOut()
                 else
                     client?.submitResult(GameResult(isWin, game.attempts, time))
@@ -167,7 +171,8 @@ fun app() {
 
             delay(10L)
             timeManager.updateTimer()
-            if ( timeManager.timer > 6000L && isMultiplayer && timeOuted.compareAndSet(false, true)) {
+            if ( timeManager.timer > 10000L && isMultiplayer && !timeOuted) {
+                timeOuted = true
                 timeManager.setGameEndedTime()
                 endMultiplayerGame(timeManager.timer, false)
                 gameOver = true
@@ -198,9 +203,7 @@ fun app() {
     }
 
     fun submitGuess() {
-        if (!timeOuted.compareAndSet(false, true)) {
-            return
-        }
+
 
         if (timeManager.startTime == null) {
             timeManager.startTimer()
@@ -218,16 +221,16 @@ fun app() {
         } else if (game.isGameOver()) {
             text = "Game Over! \n"
             timeManager.setGameEndedTime()
-            if (isMultiplayer) endMultiplayerGame(timeManager.timer, false)
+            if (isMultiplayer) endMultiplayerGame(timeManager.gameEndedTime, false)
             gameOver = true
         } else {
             text = "Try again. Attempts left: ${settings.maxAttempts - game.attempts}\n"
-            timeOuted.set(false)
         }
     }
 
     fun resetGame() {
-        timeOuted.set(false)
+        areResultsSent = false
+        timeOuted = false
         text = ""
         gameOver = false
         guesses.clear()
@@ -240,6 +243,8 @@ fun app() {
     }
 
     fun resetToStartMultiplayer(secret : List<String>?) {
+        areResultsSent = false
+        timeOuted = false
         text = ""
         gameOver = false
         guesses.clear()

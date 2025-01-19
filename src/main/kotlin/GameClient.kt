@@ -51,18 +51,21 @@ class GameClient(
             while (!socket.isClosed && socket.isConnected) {
                 val response = input.readObject() as Map<*, *>
                 println("Received response: $response")
-                when (response["status"]) {
-                    "opponentDisconnected" -> handleDisconnection()
-                    "secretCode" -> handleSecretCode(response)
-                    "results" -> handleResults(response)
-                    "gameCode" -> handleGameCode(response)
-                    "joined" -> handleJoined()
-                    "error" -> handleError()
-                    else -> {
-                        println("Unknown status: ${response["status"]}")
-                        handleDisconnection()
+                synchronized (this) {
+                    when (response["status"]) {
+                        "opponentDisconnected" -> handleDisconnection()
+                        "secretCode" -> handleSecretCode(response)
+                        "results" -> handleResults(response)
+                        "gameCode" -> handleGameCode(response)
+                        "joined" -> handleJoined()
+                        "error" -> handleError()
+                        else -> {
+                            println("Unknown status: ${response["status"]}")
+                            handleDisconnection()
+                        }
                     }
                 }
+
             }
         } catch (e: EOFException) {
             if (results == null)
@@ -135,6 +138,7 @@ class GameClient(
     }
 
     fun sendTimeOut() {
+        println("Sending timeout to the server.")
         val result = GameResult(false, 0, 0, true)
         try {
             output.writeObject(mapOf("action" to "submitResult", "result" to result))
@@ -189,15 +193,17 @@ class GameClient(
             (this as java.lang.Object).wait()
         }
         val res = results!!
-        results = null
+//        results = null
         return res
     }
 
+    @Synchronized
     fun handleDisconnection() {
         println("Disconnected from server.")
         onDisconnection()
     }
 
+    @Synchronized
     fun handleError() {
         println("Game full or doesn't exist.")
         onError()

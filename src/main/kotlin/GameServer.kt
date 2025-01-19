@@ -15,6 +15,7 @@ class GameServer(private val port: Int) {
     private val serverSocket = ServerSocket(port)
     private val games = ConcurrentHashMap<String, GameSession>()
     private val clients = ConcurrentHashMap<Socket, String>()
+    private var nextCodes = (1000..9999).shuffled()
 
     fun start() {
         println("Server started on port $port")
@@ -33,50 +34,55 @@ class GameServer(private val port: Int) {
                 val request = input.readObject() as Map<*, *>
                 when (request["action"]) {
                     "createGame" -> {
-                        val gameCode = generateGameCode()
-                        val gameSession = GameSession()
-                        games[gameCode] = gameSession
-                        gameSession.addPlayer(clientSocket, output)
-                        clients[clientSocket] = gameCode
-                        output.writeObject(mapOf("status" to "gameCode", "gameCode" to gameCode))
+                        synchronized (this) {
+                            val gameCode = generateGameCode()
+                            val gameSession = GameSession()
+                            games[gameCode] = gameSession
+                            gameSession.addPlayer(clientSocket, output)
+                            clients[clientSocket] = gameCode
+                            output.writeObject(mapOf("status" to "gameCode", "gameCode" to gameCode))
+                        }
                     }
                     "joinGame" -> {
-                        val gameCode = request["gameCode"] as? String
-                        if (gameCode != null) {
-                            println("Joining game $gameCode")
-                            val gameSession = games[gameCode]
-                            if (gameSession != null && gameSession.addPlayer(clientSocket, output)) {
-                                clients[clientSocket] = gameCode
-                                output.writeObject(mapOf("status" to "joined"))
-                                println("Player joined game $gameCode")
-                                if (gameSession.isReadyToStart()) {
-                                    println("Game started")
-                                    gameSession.startGame()
+                        synchronized(this) {
+                            val gameCode = request["gameCode"] as? String
+                            if (gameCode != null) {
+                                println("Joining game $gameCode")
+                                val gameSession = games[gameCode]
+                                if (gameSession != null && gameSession.addPlayer(clientSocket, output)) {
+                                    clients[clientSocket] = gameCode
+                                    output.writeObject(mapOf("status" to "joined"))
+                                    println("Player joined game $gameCode")
+                                    if (gameSession.isReadyToStart()) {
+                                        println("Game started")
+                                        gameSession.startGame()
+                                    }
+                                } else {
+                                    output.writeObject(mapOf("status" to "error", "message" to "Invalid game code or game full"))
                                 }
                             } else {
-                                output.writeObject(mapOf("status" to "error", "message" to "Invalid game code or game full"))
+                                println("Joining game failed: game code is null")
+                                output.writeObject(mapOf("status" to "error", "message" to "Game code is null"))
                             }
-                        } else {
-                            println("Joining game failed: game code is null")
-                            output.writeObject(mapOf("status" to "error", "message" to "Game code is null"))
                         }
                     }
-                    "submitResult" -> synchronized(this) {
-                        val gameCode = clients[clientSocket]
-                        if (gameCode != null) {
-                            val result = request["result"] as GameResult
-                            // jesli jest timeout to na ostatnim polu jest true
-                            val gameSession = games[gameCode]
-                            gameSession?.submitResult(result)
-                            if (gameSession?.isComplete() == true) {
-                                val results = gameSession.getResults()
-                                gameSession.notifyPlayers(results)
-                                games.remove(gameCode)
-                                disconnectClient(gameSession.players[0])
-                                disconnectClient(gameSession.players[1])
+                    "submitResult" -> {
+                        synchronized (this) {
+                            val gameCode = clients[clientSocket]
+                            if (gameCode != null) {
+                                val result = request["result"] as GameResult
+                                // jesli jest timeout to na ostatnim polu jest true
+                                val gameSession = games[gameCode]
+                                gameSession?.submitResult(clientSocket, result)
+                                if (gameSession?.isComplete() == true) {
+                                    val results = gameSession.getResults()
+                                    gameSession.notifyPlayers(results)
+                                    games.remove(gameCode)
+                                    disconnectClient(gameSession.players.keys.elementAt(0))
+                                    disconnectClient(gameSession.players.keys.elementAt(1))
+                                }
                             }
                         }
-
                     }
                     else -> {
                         println("Unknown action: ${request["action"]}")
@@ -106,7 +112,7 @@ class GameServer(private val port: Int) {
                 it.closeSession()
                 games.remove(gameCode)
 
-                it.players.forEach { player ->
+                it.players.keys.forEach { player ->
                     if (player != clientSocket) {
                         try {
                             val output = ObjectOutputStream(player.getOutputStream())
@@ -129,17 +135,20 @@ class GameServer(private val port: Int) {
     private fun generateGameCode(): String {
         return (1000..9999).random().toString()
     }
+
+//    private fun generateGameCode(): String {
+//        val code = nextCodes.first().toString()
+//        return code
+//    }
 }
 
 class GameSession() {
-    internal val players = mutableListOf<Socket>()
-    private val outputs = mutableListOf<ObjectOutputStream>()
-    private val results = mutableListOf<GameResult>()
+    internal val players = mutableMapOf<Socket, ObjectOutputStream>()
+    private val results = mutableMapOf<Socket, GameResult>()
 
     fun addPlayer(player: Socket, output: ObjectOutputStream): Boolean {
         if (players.size < 2) {
-            players.add(player)
-            outputs.add(output)
+            players.put(player, output)
             return true
         }
         return false
@@ -151,69 +160,72 @@ class GameSession() {
 
     fun startGame() {
         val secretCode = List(DEFAULT_SETTINGS.sequenceLength) { DEFAULT_SETTINGS.colorsList.random() }.joinToString(" ")
-        outputs.forEach { output ->
+        players.values.forEach { output ->
             println("Sending secret code to player")
             output.writeObject(mapOf("status" to "secretCode", "secretCode" to secretCode))
         }
     }
 
-    fun submitResult(result: GameResult) {
-        results.add(result)
+    fun submitResult(socket: Socket, result: GameResult) {
+        results.put(socket, result)
     }
 
     fun isComplete(): Boolean {
         return results.size == 2
     }
 
-    fun getResults(): List<GameResult> {
+    fun getResults(): Map<Socket, GameResult> {
         return results
     }
 
-    fun notifyPlayers(results: List<GameResult>) {
+    fun notifyPlayers(results: Map<Socket, GameResult>) {
+        val sockets = results.keys
+        val result1 = results[sockets.elementAt(0)] ?: return
+        val result2 = results[sockets.elementAt(1)] ?: return
         var player1Msg = ""
         var player2Msg = ""
-        val player1Results = if (results[0].isTimeOut) {
+        val player1Results = if (result1.isTimeOut) {
             "Time out\n"
         } else {
-            (if (results[0].isWin) "Success, " else "Failure, ") +
-                "Attempts: ${results[0].attempts}, Time: ${"%.3f".format(results[0].time / 1000.0)} seconds\n"
+            (if (result1.isWin) "Success, " else "Failure, ") +
+                "Attempts: ${result1.attempts}, Time: ${"%.3f".format(result1.time / 1000.0)} seconds\n"
         }
-        val player2Results = if (results[1].isTimeOut) {
+        val player2Results = if (result2.isTimeOut) {
             "Time out\n"
         } else {
-            (if (results[1].isWin) "Success, " else "Failure, ") +
-                "Attempts: ${results[1].attempts}, Time: ${"%.3f".format(results[1].time / 1000.0)} seconds\n"
+            (if (result2.isWin) "Success, " else "Failure, ") +
+                "Attempts: ${result2.attempts}, Time: ${"%.3f".format(result2.time / 1000.0)} seconds\n"
         }
 
 
-        if (results[0].isWin && results[1].isWin) {
-            if (results[0].time < results[1].time) {
+        if (result1.isWin && result2.isWin) {
+            if (result1.time < result2.time) {
                 player1Msg = "You win!\n\nYour score\n$player1Results\nOponent score\n$player2Results"
                 player2Msg = "You lose\n\nYour score\n$player2Results\nOponent score\n$player1Results"
             }
-        } else if (results[0].isWin) {
+        } else if (result1.isWin) {
             player1Msg = "You win!\n\nYour score\n$player1Results\nOponent score\n$player2Results"
             player2Msg = "You lose!\n\nYour score\n$player2Results\nOponent score\n$player1Results"
-        } else if (results[1].isWin) {
+        } else if (result2.isWin) {
             player1Msg = "You lose\nYour score\n$player1Results\nOponent score\n$player2Results"
             player2Msg = "You win!\n\nYour score\n$player2Results\nOponent score\n$player1Results"
         } else {
             player1Msg = "Noone wins\n\nYour score\n$player1Results\nOponent score\n$player2Results"
             player2Msg = "Noone wins\n\nYour score\n$player2Results\nOponent score\n$player1Results"
         }
-        outputs[0].writeObject(mapOf("status" to "results", "results" to player1Msg))
-        outputs[1].writeObject(mapOf("status" to "results", "results" to player2Msg))
+        players[sockets.elementAt(0)]?.writeObject(mapOf("status" to "results", "results" to player1Msg))
+        players[sockets.elementAt(1)]?.writeObject(mapOf("status" to "results", "results" to player2Msg))
     }
 
     fun closeSession() {
-        players.forEach { player ->
+        players.keys.forEach { player ->
             try {
                 player.close()
             } catch (e: IOException) {
                 println("IOException while closing player socket: ${e.message}")
             }
         }
-        outputs.forEach { output ->
+        players.values.forEach { output ->
             try {
                 output.close()
             } catch (e: IOException) {
