@@ -245,7 +245,8 @@ fun app() {
                 client = GameClient(
                     SERVER_HOST,
                     SERVER_PORT,
-                    onDisconnection = { state = DialogState.SERVER_DISCONNECTED }
+                    onDisconnection = { if (isMultiplayer )state = DialogState.SERVER_DISCONNECTED },
+                    onError = { state = DialogState.SHOW_CODE_ERROR }
                 )
                 withTimeout(5000L) {
                     client?.connect()
@@ -303,7 +304,8 @@ fun app() {
                 client = GameClient(
                     SERVER_HOST,
                     SERVER_PORT,
-                    onDisconnection = { state = DialogState.SERVER_DISCONNECTED }
+                    onDisconnection = { if (isMultiplayer )state = DialogState.SERVER_DISCONNECTED },
+                    onError = { state = DialogState.SHOW_CODE_ERROR }
                 )
                 withTimeout(5000L) {
                     client?.connect()
@@ -316,9 +318,6 @@ fun app() {
                         val secretStr = client?.receiveSecretCode()
                         resetToStartMultiplayer(secretStr?.split(" ") ?: listOf())
 
-                    } else {
-                        state = DialogState.SHOW_CODE_ERROR
-                        println("Error: Invalid game code or game full")
                     }
                 }
             } catch (e: TimeoutCancellationException) {
@@ -601,7 +600,11 @@ fun app() {
                             Button(onClick = {
                                 clipboardManager.setText(AnnotatedString(gameCode ?: ""))
                             }) { Text("Copy code") }
-                            Button(onClick = { resetGame() }) { Text("Exit") }
+                            Button(onClick = {
+                                //client?.handleDisconnection()
+                                resetGame()
+                                closeSession()
+                            }) { Text("Exit") }
                         }
                     )
 

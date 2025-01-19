@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.get
 import kotlin.concurrent.thread
 
-data class GameResult(val isWin: Boolean, val attempts: Int, val time: Long): java.io.Serializable
+data class GameResult(val isWin: Boolean, val attempts: Int, val time: Long, val isTimeOut: Boolean = false): java.io.Serializable
 
 class GameServer(private val port: Int) {
     private val serverSocket = ServerSocket(port)
@@ -64,17 +64,27 @@ class GameServer(private val port: Int) {
                     "submitResult" -> {
                         val gameCode = clients[clientSocket] ?: continue
                         val result = request["result"] as GameResult
+                        // jesli jest timeout to na ostatnim polu jest true
                         val gameSession = games[gameCode]
                         gameSession?.submitResult(result)
                         if (gameSession?.isComplete() == true) {
                             val results = gameSession.getResults()
                             gameSession.notifyPlayers(results)
                             games.remove(gameCode)
+                            disconnectClient(gameSession.players[0])
+                            disconnectClient(gameSession.players[1])
                         }
+                    }
+                    else -> {
+                        println("Unknown action: ${request["action"]}")
+                        disconnectClient(clientSocket)
                     }
                 }
             }
-        } catch (e: EOFException) {
+        } catch (e: ClassCastException) {
+            println("ClassCastException: ${e.message}")
+        }
+        catch (e: EOFException) {
             println("Client disconnected: ${clientSocket.inetAddress.hostAddress}")
         } catch (e: SocketException) {
             println("SocketException: ${e.message}")
@@ -159,10 +169,19 @@ class GameSession() {
     fun notifyPlayers(results: List<GameResult>) {
         var player1Msg = ""
         var player2Msg = ""
-        val player1Results = (if (results[0].isWin) "Success, " else "Failure, ") +
+        val player1Results = if (results[0].isTimeOut) {
+            "Time out\n"
+        } else {
+            (if (results[0].isWin) "Success, " else "Failure, ") +
                 "Attempts: ${results[0].attempts}, Time: ${"%.3f".format(results[0].time / 1000.0)} seconds\n"
-        val player2Results = (if (results[1].isWin) "Success, " else "Failure, ") +
+        }
+        val player2Results = if (results[1].isTimeOut) {
+            "Time out\n"
+        } else {
+            (if (results[1].isWin) "Success, " else "Failure, ") +
                 "Attempts: ${results[1].attempts}, Time: ${"%.3f".format(results[1].time / 1000.0)} seconds\n"
+        }
+
 
         if (results[0].isWin && results[1].isWin) {
             if (results[0].time < results[1].time) {
@@ -176,12 +195,11 @@ class GameSession() {
             player1Msg = "You lose\nYour score\n$player1Results\nOponent score\n$player2Results"
             player2Msg = "You win!\n\nYour score\n$player2Results\nOponent score\n$player1Results"
         } else {
-            player1Msg = "Noone win\n\nYour score\n$player1Results\nOponent score\n$player2Results"
-            player2Msg = "Noone win\n\nYour score\n$player2Results\nOponent score\n$player1Results"
+            player1Msg = "Noone wins\n\nYour score\n$player1Results\nOponent score\n$player2Results"
+            player2Msg = "Noone wins\n\nYour score\n$player2Results\nOponent score\n$player1Results"
         }
         outputs[0].writeObject(mapOf("status" to "results", "results" to player1Msg))
         outputs[1].writeObject(mapOf("status" to "results", "results" to player2Msg))
-
     }
 
     fun closeSession() {

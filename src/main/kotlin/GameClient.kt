@@ -1,3 +1,4 @@
+import java.io.EOFException
 import java.io.IOException
 import java.net.Socket
 import java.io.ObjectInputStream
@@ -6,7 +7,8 @@ import java.io.ObjectOutputStream
 class GameClient(
     private val host: String,
     private val port: Int,
-    private val onDisconnection: () -> Unit
+    private val onDisconnection: () -> Unit,
+    private val onError: () -> Unit
 ) {
     internal lateinit var socket: Socket
     internal lateinit var input: ObjectInputStream
@@ -55,10 +57,23 @@ class GameClient(
                     "results" -> handleResults(response)
                     "gameCode" -> handleGameCode(response)
                     "joined" -> handleJoined()
-                    else -> println("Unknown status: ${response["status"]}")
+                    "error" -> handleError()
+                    else -> {
+                        println("Unknown status: ${response["status"]}")
+                        handleDisconnection()
+                    }
                 }
             }
-        } catch (e: IOException) {
+        } catch (e: EOFException) {
+            if (results == null)
+                handleDisconnection()
+            // w przeciwnym wypadku nie wyświetlamy błędu, tylko klient ogląda wyniki
+        }
+        catch (e: ClassCastException) {
+            println("ClassCastException in listening thread: ${e.message}")
+            handleDisconnection()
+        }
+        catch (e: IOException) {
             println("IOException in listening thread: ${e.message}")
             handleDisconnection()
         } catch (e: Exception) {
@@ -119,6 +134,17 @@ class GameClient(
         }
     }
 
+    fun sendTimeOut() {
+        val result = GameResult(false, 0, 0, true)
+        try {
+            output.writeObject(mapOf("action" to "submitResult", "result" to result))
+        } catch (e: IOException) {
+            println("IOException: ${e.message}")
+        } catch (e: Exception) {
+            println("Exception: ${e.message}")
+        }
+    }
+
     @Synchronized
     private fun handleJoined() {
         joinGameResponse = true
@@ -167,9 +193,14 @@ class GameClient(
         return res
     }
 
-
     fun handleDisconnection() {
         println("Disconnected from server.")
         onDisconnection()
     }
+
+    fun handleError() {
+        println("Game full or doesn't exist.")
+        onError()
+    }
+
 }
