@@ -61,19 +61,22 @@ class GameServer(private val port: Int) {
                             output.writeObject(mapOf("status" to "error", "message" to "Game code is null"))
                         }
                     }
-                    "submitResult" -> {
-                        val gameCode = clients[clientSocket] ?: continue
-                        val result = request["result"] as GameResult
-                        // jesli jest timeout to na ostatnim polu jest true
-                        val gameSession = games[gameCode]
-                        gameSession?.submitResult(result)
-                        if (gameSession?.isComplete() == true) {
-                            val results = gameSession.getResults()
-                            gameSession.notifyPlayers(results)
-                            games.remove(gameCode)
-                            disconnectClient(gameSession.players[0])
-                            disconnectClient(gameSession.players[1])
+                    "submitResult" -> synchronized(this) {
+                        val gameCode = clients[clientSocket]
+                        if (gameCode != null) {
+                            val result = request["result"] as GameResult
+                            // jesli jest timeout to na ostatnim polu jest true
+                            val gameSession = games[gameCode]
+                            gameSession?.submitResult(result)
+                            if (gameSession?.isComplete() == true) {
+                                val results = gameSession.getResults()
+                                gameSession.notifyPlayers(results)
+                                games.remove(gameCode)
+                                disconnectClient(gameSession.players[0])
+                                disconnectClient(gameSession.players[1])
+                            }
                         }
+
                     }
                     else -> {
                         println("Unknown action: ${request["action"]}")

@@ -33,6 +33,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import androidx.compose.ui.platform.LocalClipboardManager
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 
 
 val MAX_SEQ_LENGTH = 6
@@ -109,10 +110,12 @@ fun app() {
     var currentGuess by remember { mutableStateOf(List(0) { "" }) }
 
     // Timer
-    var startTime by remember { mutableStateOf<Long?>(null) }
-    var pausedTime by remember { mutableStateOf<Long?>(null) }
-    var timer by remember { mutableStateOf(0L) }
-    var gameWonTime by remember { mutableStateOf(0L) }
+//    var startTime by remember { mutableStateOf<Long?>(null) }
+//    var pausedTime by remember { mutableStateOf<Long?>(null) }
+//    var timer by remember { mutableStateOf(0L) }
+//    var gameWonTime by remember { mutableStateOf(0L) }
+
+    val timeManager = remember { TimeManager() }
 
     // Multiplayer Mode
     var isMultiplayer by remember { mutableStateOf(false) }
@@ -121,28 +124,17 @@ fun app() {
     var isHost by remember { mutableStateOf(true) }
     var client: GameClient? by remember { mutableStateOf(null) }
     var results by remember { mutableStateOf("") }
+    var timeOuted by remember { mutableStateOf(AtomicBoolean(false)) }
 
     val clipboardManager = LocalClipboardManager.current
-
-
-    LaunchedEffect(startTime, pausedTime, state, ) {
-        while (startTime != null && !gameOver && pausedTime == null &&
-            state != DialogState.IS_PAUSED && state != DialogState.SERVER_DISCONNECTED) {
-
-            delay(10L)
-            startTime?.let {
-                timer = System.currentTimeMillis() - it
-            }
-        }
-        if (game.isSolved) {
-            timer = gameWonTime
-        }
-    }
 
     fun endMultiplayerGame(time: Long, isWin: Boolean) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                client?.submitResult(GameResult(isWin, game.attempts, time))
+                if (timeOuted.get())
+                    client?.sendTimeOut()
+                else
+                    client?.submitResult(GameResult(isWin, game.attempts, time))
                 state = DialogState.SHOW_WAITING_FOR_RESULTS
                 val response = client?.receiveResults()
                 withContext(Dispatchers.Main) {
@@ -167,6 +159,27 @@ fun app() {
         }
     }
 
+    LaunchedEffect(timeManager.startTime, timeManager.pausedTime, state) {
+
+
+        while (timeManager.startTime != null && !gameOver && timeManager.pausedTime == null &&
+            state != DialogState.IS_PAUSED && state != DialogState.SERVER_DISCONNECTED) {
+
+            delay(10L)
+            timeManager.updateTimer()
+            if ( timeManager.timer > 6000L && isMultiplayer && timeOuted.compareAndSet(false, true)) {
+                timeManager.setGameEndedTime()
+                endMultiplayerGame(timeManager.timer, false)
+                gameOver = true
+            }
+        }
+        if (game.isGameOver()) {
+            timeManager.setTimer()
+        }
+    }
+
+
+
     fun closeSession() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -185,8 +198,12 @@ fun app() {
     }
 
     fun submitGuess() {
-        if (startTime == null) {
-            startTime = System.currentTimeMillis()
+        if (!timeOuted.compareAndSet(false, true)) {
+            return
+        }
+
+        if (timeManager.startTime == null) {
+            timeManager.startTimer()
         }
 
         var guess = currentGuess.toMutableList()
@@ -194,27 +211,28 @@ fun app() {
         guesses.add(guess to feedback)
         if (game.isSolved) {
             text = "Congratulations! You've guessed the sequence in ${game.attempts} attempts.\n"
-            gameWonTime = timer
-            if (isMultiplayer) endMultiplayerGame(gameWonTime, true)
-            ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, gameWonTime)
+            timeManager.setGameEndedTime()
+            if (isMultiplayer) endMultiplayerGame(timeManager.gameEndedTime, true)
+            ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, timeManager.gameEndedTime)
             gameOver = true
         } else if (game.isGameOver()) {
             text = "Game Over! \n"
-            if (isMultiplayer) endMultiplayerGame(timer, false)
+            timeManager.setGameEndedTime()
+            if (isMultiplayer) endMultiplayerGame(timeManager.timer, false)
             gameOver = true
         } else {
             text = "Try again. Attempts left: ${settings.maxAttempts - game.attempts}\n"
+            timeOuted.set(false)
         }
     }
 
     fun resetGame() {
+        timeOuted.set(false)
         text = ""
         gameOver = false
         guesses.clear()
         game = Game(settings)
-        startTime = null
-        pausedTime = null
-        timer = 0L
+        timeManager.reset()
         resetInput = !resetInput
         isMultiplayer = false
         isHost = false
@@ -229,9 +247,7 @@ fun app() {
         sequenceLength = DEFAULT_SETTINGS.sequenceLength
         maxAttempts = DEFAULT_SETTINGS.maxAttempts
         colorsList = DEFAULT_SETTINGS.colorsList
-        startTime = System.currentTimeMillis()
-        pausedTime = null
-        timer = 0L
+        timeManager.resetAndStart()
         resetInput = !resetInput
         state = DialogState.OFF
     }
@@ -351,7 +367,7 @@ fun app() {
             }
             Row(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
                 Text(
-                    text = "Time: ${"%.3f".format(timer / 1000.0)} s  ",
+                    text = "Time: ${"%.3f".format(timeManager.timer / 1000.0)} s  ",
                     modifier = Modifier.align(Alignment.CenterVertically)
                 )
 
@@ -360,7 +376,7 @@ fun app() {
                     if (!gameOver) {
                         Button(
                             onClick = {
-                                pausedTime = System.currentTimeMillis()
+                                timeManager.pauseTimer()
                                 state = DialogState.IS_PAUSED
                             },
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
@@ -377,14 +393,14 @@ fun app() {
                     }
 
                     IconButton(onClick = {
-                        pausedTime = System.currentTimeMillis()
+                        timeManager.pauseTimer()
                         state = DialogState.SHOW_SETTINGS
                     }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
 
                     IconButton(onClick = {
-                        pausedTime = System.currentTimeMillis()
+                        timeManager.pauseTimer()
                         state = DialogState.SHOW_SCORES
                     }) {
                         Icon(Icons.Filled.EmojiEvents, contentDescription = "Trophy")
@@ -462,8 +478,7 @@ fun app() {
                         colorsList = colorsList,
                         onColorsListChange = { colorsList = it },
                         onDismissRequest = {
-                            startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
-                            pausedTime = null
+                            timeManager.resumeTimer()
                             state = DialogState.OFF
                         },
                         onApply = {
@@ -484,8 +499,7 @@ fun app() {
                         colorsNumber = colorsList.size,
                         scoresManager = ScoresManager,
                         onDismissRequest = {
-                            startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
-                            pausedTime = null
+                            timeManager.resumeTimer()
                             state = DialogState.OFF
                         }
                     )
@@ -502,8 +516,7 @@ fun app() {
                         title = { Text("Game Paused") },
                         confirmButton = {
                             Button(onClick = {
-                                startTime = startTime?.plus(System.currentTimeMillis() - (pausedTime ?: 0L))
-                                pausedTime = null
+                                timeManager.resumeTimer()
                                 state = DialogState.OFF
                             }) {
                                 Text("Play")
