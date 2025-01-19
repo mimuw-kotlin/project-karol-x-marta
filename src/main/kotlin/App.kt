@@ -216,7 +216,9 @@ fun app() {
             text = "Congratulations! You've guessed the sequence in ${game.attempts} attempts.\n"
             timeManager.setGameEndedTime()
             if (isMultiplayer) endMultiplayerGame(timeManager.gameEndedTime, true)
-            ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, timeManager.gameEndedTime)
+            CoroutineScope(Dispatchers.IO).launch {
+                ScoresManager.insertScore(sequenceLength, maxAttempts, colorsList.size, timeManager.gameEndedTime)
+            }
             gameOver = true
         } else if (game.isGameOver()) {
             text = "Game Over! \n"
@@ -240,6 +242,32 @@ fun app() {
         isMultiplayer = false
         isHost = false
         state = DialogState.OFF
+    }
+
+    fun resetSingleplayerGame() {
+        areResultsSent = false
+        timeOuted = false
+        text = ""
+        gameOver = false
+        guesses.clear()
+        game = Game(settings)
+        timeManager.reset()
+        resetInput = !resetInput
+        state = DialogState.SHOW_MULTIPLAYER_MODES
+    }
+
+    fun printbeforeresetgame() {
+        println(areResultsSent)
+        println(timeOuted)
+        println(text)
+        println(gameOver)
+        println(guesses)
+        println(game)
+        println(timeManager)
+        println(resetInput)
+        println(isMultiplayer)
+        println(isHost)
+        println(state)
     }
 
     fun resetToStartMultiplayer(secret : List<String>?) {
@@ -416,7 +444,7 @@ fun app() {
                     onClick = {
                         isMultiplayer = !isMultiplayer
                         if (isMultiplayer) {
-                            state = DialogState.SHOW_MULTIPLAYER_MODES
+                            resetSingleplayerGame()
                         }
                         else if (client != null) {
                             closeSession()

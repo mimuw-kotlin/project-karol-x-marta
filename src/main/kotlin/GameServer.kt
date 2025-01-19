@@ -15,7 +15,7 @@ class GameServer(private val port: Int) {
     private val serverSocket = ServerSocket(port)
     private val games = ConcurrentHashMap<String, GameSession>()
     private val clients = ConcurrentHashMap<Socket, String>()
-    private var nextCodes = (1000..9999).shuffled()
+    private var nextCodes = (1000..9999).shuffled().toMutableList()
 
     fun start() {
         println("Server started on port $port")
@@ -77,7 +77,8 @@ class GameServer(private val port: Int) {
                                 if (gameSession?.isComplete() == true) {
                                     val results = gameSession.getResults()
                                     gameSession.notifyPlayers(results)
-                                    games.remove(gameCode)
+//                                    games.remove(gameCode)
+//                                    nextCodes.add(gameCode.toInt())
                                     disconnectClient(gameSession.players.keys.elementAt(0))
                                     disconnectClient(gameSession.players.keys.elementAt(1))
                                 }
@@ -110,8 +111,10 @@ class GameServer(private val port: Int) {
             val gameSession = games[gameCode]
             gameSession?.let {
                 it.closeSession()
-                games.remove(gameCode)
-
+                val removedGame = games.remove(gameCode)
+                if (removedGame != null) {
+                    nextCodes.add(gameCode.toInt())
+                }
                 it.players.keys.forEach { player ->
                     if (player != clientSocket) {
                         try {
@@ -132,14 +135,15 @@ class GameServer(private val port: Int) {
         }
     }
 
-    private fun generateGameCode(): String {
-        return (1000..9999).random().toString()
-    }
-
 //    private fun generateGameCode(): String {
-//        val code = nextCodes.first().toString()
-//        return code
+//        return (1000..9999).random().toString()
 //    }
+
+    private fun generateGameCode(): String {
+        val code = nextCodes.first().toString()
+        nextCodes = nextCodes.drop(1).toMutableList()
+        return code
+    }
 }
 
 class GameSession() {

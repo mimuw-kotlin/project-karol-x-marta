@@ -1,11 +1,13 @@
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -13,6 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun scoresDialog(
@@ -27,6 +31,13 @@ fun scoresDialog(
     var selectedColorsNumber by remember { mutableStateOf(colorsNumber) }
     var showScores by remember { mutableStateOf(false) }
     var scores by remember { mutableStateOf(listOf<Double>()) }
+
+    LaunchedEffect(selectedSequenceLength, selectedMaxAttempts, selectedColorsNumber) {
+        scores = withContext(Dispatchers.IO) {
+            scoresManager.getFilteredScores(selectedSequenceLength, selectedMaxAttempts, selectedColorsNumber)
+        }
+        showScores = true
+    }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -78,19 +89,11 @@ fun scoresDialog(
                 }
             }
         },
-        confirmButton = {
-            Button(
-                onClick = {
-                    scores = scoresManager.getFilteredScores(selectedSequenceLength, selectedMaxAttempts, selectedColorsNumber)
-                    showScores = true
+        buttons = {
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Button(onClick = onDismissRequest) {
+                    Text("Cancel")
                 }
-            ) {
-                Text("Show Scores")
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismissRequest) {
-                Text("Cancel")
             }
         }
     )
