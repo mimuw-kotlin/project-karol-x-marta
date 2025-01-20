@@ -82,8 +82,8 @@ enum class DialogState {
     SERVER_DISCONNECTED
 }
 
-val SERVER_HOST = "localhost"
-val SERVER_PORT = 12345
+//val SERVER_HOST = "localhost"
+//val SERVER_PORT = 12345
 
 val DEFAULT_SETTINGS = Settings(sequenceLength = 4, maxAttempts = 10, colorsList = listOf("A", "B", "C", "D", "E", "F"))
 
@@ -91,7 +91,7 @@ val DEFAULT_SETTINGS = Settings(sequenceLength = 4, maxAttempts = 10, colorsList
 
 @Composable
 @Preview
-fun app() {
+fun app(serverHost: String, serverPort: Int) {
     // Settings
     var sequenceLength by remember { mutableStateOf(4) }
     var maxAttempts by remember { mutableStateOf(10) }
@@ -292,8 +292,8 @@ fun app() {
                 println("Attempting to connect to the server...")
 
                 client = GameClient(
-                    SERVER_HOST,
-                    SERVER_PORT,
+                    serverHost,
+                    serverPort,
                     onDisconnection = { if (isMultiplayer )state = DialogState.SERVER_DISCONNECTED },
                     onError = { state = DialogState.SHOW_CODE_ERROR }
                 )
@@ -351,8 +351,8 @@ fun app() {
                 println("Attempting to connect to the server...")
 
                 client = GameClient(
-                    SERVER_HOST,
-                    SERVER_PORT,
+                    serverHost,
+                    serverPort,
                     onDisconnection = { if (isMultiplayer )state = DialogState.SERVER_DISCONNECTED },
                     onError = { state = DialogState.SHOW_CODE_ERROR }
                 )
@@ -674,7 +674,9 @@ fun app() {
                                     joinMultiplayerGame()
                                 }
                             ) { Text("Join") }
-                            Button(onClick = { resetGame() }) { Text("Exit") }
+                            Button(onClick = { resetGame()
+                                joinGameCode = ""} )
+                            { Text("Exit") }
                         }
                     )
                 }
@@ -778,14 +780,23 @@ fun DisplayColors(guess: List<String>) {
 }
 
 
-fun main() = application {
-    ScoresManager.connect()
-    ScoresManager.createScoresTable()
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Mastermind - Game",
-        state = WindowState(width = 950.dp, height = 900.dp)
-    ) {
-        app()
+fun main(args: Array<String>) = application {
+
+    val serverHost = if (args.isNotEmpty()) args[0] else "localhost"
+    val serverPort = if (args.size > 1) args[1].toIntOrNull() else 12345
+    if (serverPort == null) {
+        println("Invalid port number.")
     }
+    else {
+        ScoresManager.connect()
+        ScoresManager.createScoresTable()
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Mastermind - Game",
+            state = WindowState(width = 950.dp, height = 900.dp)
+        ) {
+            app(serverHost, serverPort)
+        }
+    }
+
 }

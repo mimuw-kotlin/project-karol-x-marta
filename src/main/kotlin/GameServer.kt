@@ -12,13 +12,23 @@ import kotlin.concurrent.thread
 data class GameResult(val isWin: Boolean, val attempts: Int, val time: Long, val isTimeOut: Boolean = false): java.io.Serializable
 
 class GameServer(private val port: Int) {
-    private val serverSocket = ServerSocket(port)
+
+    private var serverSocket: ServerSocket
     private val games = ConcurrentHashMap<String, GameSession>()
     private val clients = ConcurrentHashMap<Socket, String>()
     private var nextCodes = (1000..9999).shuffled().toMutableList()
 
+    init {
+        try {
+            serverSocket = ServerSocket(port)
+            println("Server started on port $port")
+        } catch (e: IOException) {
+            println("Failed to start server on port $port: ${e.message}")
+            throw e
+        }
+    }
+
     fun start() {
-        println("Server started on port $port")
         while (true) {
             val clientSocket = serverSocket.accept()
             thread { handleClient(clientSocket) }
@@ -240,7 +250,15 @@ class GameSession() {
 
 }
 
-fun main() {
-    val server = GameServer(12345)
-    server.start()
+fun main(args: Array<String>) {
+
+    try {
+        val port = if (args.isNotEmpty()) args[0].toInt() else 12345
+        val server = GameServer(port)
+        server.start()
+    } catch (e: NumberFormatException) {
+        println("Port must be a number.")
+    }
+    catch (e: IOException) {
+    }
 }
