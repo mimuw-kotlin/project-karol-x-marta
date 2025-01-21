@@ -1,4 +1,5 @@
 import androidx.compose.foundation.layout.Column
+import kotlin.text.toIntOrNull
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
@@ -12,6 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -20,7 +24,8 @@ fun SpinBox(
     onValueChange: (Int) -> Unit,
     minValue: Int,
     maxValue: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    description: String
 ) {
     var textValue by remember { mutableStateOf(value.toString()) }
     var lastValidValue by remember { mutableStateOf(value) }
@@ -39,7 +44,7 @@ fun SpinBox(
             },
             enabled = value > minValue
         ) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Decrease")
+            Icon(Icons.Default.ArrowBack, contentDescription = "Decrease $description")
         }
         Column {
             TextField(
@@ -49,6 +54,12 @@ fun SpinBox(
                     isOutOfRange = it.toIntOrNull()?.let { newValue ->
                         newValue !in minValue..maxValue
                     } ?: true
+                    val newValue = it.toIntOrNull()
+                    if (!isOutOfRange && newValue != null) {
+                        lastValidValue = newValue
+                        onValueChange(newValue)
+                        isOutOfRange = false
+                    }
                 },
                 readOnly = false,
                 modifier = Modifier
@@ -56,16 +67,16 @@ fun SpinBox(
                     .onFocusChanged { focusState ->
                         if (!focusState.isFocused) {
                             val newValue = textValue.toIntOrNull()
-                            if (newValue != null && newValue in minValue..maxValue) {
-                                lastValidValue = newValue
-                                onValueChange(newValue)
-                                isOutOfRange = false
-                            } else {
+                            if (newValue == null || newValue !in minValue..maxValue) {
                                 textValue = lastValidValue.toString()
                                 isOutOfRange = false
                             }
                         }
                     }
+                    .semantics {
+                        contentDescription = description
+                    }
+
             )
             if (isOutOfRange) {
                 Text(
@@ -87,7 +98,8 @@ fun SpinBox(
             },
             enabled = value < maxValue
         ) {
-            Icon(Icons.Default.ArrowForward, contentDescription = "Increase")
+            Icon(Icons.Default.ArrowForward, contentDescription = "Increase $description")
         }
     }
 }
+

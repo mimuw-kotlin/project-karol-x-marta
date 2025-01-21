@@ -23,6 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -46,6 +49,7 @@ fun GuessInput(
                     .clickable {
                         expandedIndex = if (expandedIndex == index) -1 else index
                     }
+                    .testTag("$index")
             ) {
                 DropdownMenu(
                     expanded = expandedIndex == index,
@@ -58,6 +62,7 @@ fun GuessInput(
                             expandedIndex = -1
                         },
                         modifier = Modifier.height(30.dp).padding(vertical = 2.dp)
+                            .testTag("No Color")
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
@@ -65,7 +70,7 @@ fun GuessInput(
                                 onClick = {
                                     currentGuess = currentGuess.toMutableList().apply { set(index, "") }
                                     expandedIndex = -1
-                                }
+                                },
                             )
                             Text("No Color")
                         }
@@ -77,6 +82,7 @@ fun GuessInput(
                                 expandedIndex = -1
                             },
                             modifier = Modifier.height(30.dp).padding(vertical = 2.dp)
+                                .testTag(colorOption)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
@@ -84,7 +90,7 @@ fun GuessInput(
                                     onClick = {
                                         currentGuess = currentGuess.toMutableList().apply { set(index, colorOption) }
                                         expandedIndex = -1
-                                    }
+                                    },
                                 )
                                 Box(
                                     modifier = Modifier
@@ -104,7 +110,10 @@ fun GuessInput(
             onSubmitGuess(currentGuess)
             currentGuess = List(guessSize) { "" }
             },
-            // TODO: odkomentowac - enabled = currentGuess.none { it.isEmpty() }
+            Modifier.semantics {
+                contentDescription = "Submit"
+            },
+            enabled = currentGuess.none { it.isEmpty() }
         ) {
             Text("Submit")
         }

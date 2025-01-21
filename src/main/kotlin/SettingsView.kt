@@ -1,17 +1,13 @@
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
-import androidx.compose.material.icons.*
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import kotlin.text.contains
 import java.awt.Color
 
 @Composable
@@ -34,7 +30,7 @@ fun settingsDialog(
     var showError by remember { mutableStateOf(false) }
 
     var selectedColors by remember { mutableStateOf(colorsList) }
-    val allColors = listOf("A", "B", "C", "D", "E", "F", "G", "H")
+    val allColors = ALL_COLORS.keys
 
     fun validateColorsList(input: List<String>): Boolean {
         val colors = input // .split(" ").map(String::trim)
@@ -57,7 +53,8 @@ fun settingsDialog(
                     },
                     minValue = MIN_SEQ_LENGTH,
                     maxValue = MAX_SEQ_LENGTH,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    description = "Sequence Length"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -71,7 +68,8 @@ fun settingsDialog(
                     },
                     minValue = MIN_ATTEMPTS,
                     maxValue = MAX_ATTEMPTS,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    description = "Max Attempts"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -100,7 +98,11 @@ fun settingsDialog(
                             colors = CheckboxDefaults.colors(
                                 checkedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color,
                                 uncheckedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color
-                            )
+                            ),
+                            modifier = Modifier.semantics {
+                                contentDescription = "Color"
+                                testTag = color
+                            }
                         )
                     }
                 }

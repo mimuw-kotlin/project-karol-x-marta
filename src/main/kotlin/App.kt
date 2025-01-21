@@ -33,7 +33,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import androidx.compose.ui.platform.LocalClipboardManager
 import java.io.IOException
-import java.util.concurrent.atomic.AtomicBoolean
 
 
 val MAX_SEQ_LENGTH = 6
@@ -42,6 +41,9 @@ val MAX_ATTEMPTS = 20
 val MIN_ATTEMPTS = 3
 val MAX_COLORS = 8
 val MIN_COLORS = 3
+val DEFAULT_SEQ_LENGTH = 4
+val DEFAULT_ATTEMPTS = 10
+val DEFAULT_COLORS_LIST = listOf("A", "B", "C", "D", "E", "F")
 
 
 enum class ColorByName(val color: Color) {
@@ -85,7 +87,7 @@ enum class DialogState {
 //val SERVER_HOST = "localhost"
 //val SERVER_PORT = 12345
 
-val DEFAULT_SETTINGS = Settings(sequenceLength = 4, maxAttempts = 10, colorsList = listOf("A", "B", "C", "D", "E", "F"))
+val DEFAULT_SETTINGS = Settings(sequenceLength = DEFAULT_SEQ_LENGTH, maxAttempts = DEFAULT_ATTEMPTS, colorsList = DEFAULT_COLORS_LIST)
 
 
 

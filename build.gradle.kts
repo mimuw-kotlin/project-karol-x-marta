@@ -25,6 +25,7 @@ dependencies {
     implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.7.3")
     implementation("org.jetbrains.compose.foundation:foundation:1.7.3")
     implementation("org.jetbrains.compose.runtime:runtime:1.7.3")
+    implementation("org.jetbrains.compose.ui:ui-util:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
     implementation("org.jetbrains.skiko:skiko-awt-runtime-linux-x64:0.7.77")
     testImplementation(kotlin("test"))
@@ -35,6 +36,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.3")
     implementation("androidx.compose.ui:ui-test-junit4:1.7.3")
     ktlintRuleset("com.pinterest.ktlint:ktlint-ruleset-standard:0.42.1")
+
 
 }
 

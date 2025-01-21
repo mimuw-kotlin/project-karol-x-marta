@@ -50,7 +50,8 @@ fun scoresDialog(
                     onValueChange = { selectedSequenceLength = it },
                     minValue = MIN_SEQ_LENGTH,
                     maxValue = MAX_SEQ_LENGTH,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    description = "Sequence Length"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -61,7 +62,8 @@ fun scoresDialog(
                     onValueChange = { selectedMaxAttempts = it },
                     minValue = MIN_ATTEMPTS,
                     maxValue = MAX_ATTEMPTS,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    description = "Max Attempts"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -72,7 +74,8 @@ fun scoresDialog(
                     onValueChange = { selectedColorsNumber = it },
                     minValue = MIN_COLORS,
                     maxValue = MAX_COLORS,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    description = "Colors Number"
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
