@@ -1,18 +1,24 @@
 import java.io.EOFException
 import java.io.IOException
-import java.net.ServerSocket
-import java.net.Socket
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.net.ServerSocket
+import java.net.Socket
 import java.net.SocketException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.get
 import kotlin.concurrent.thread
 
-data class GameResult(val isWin: Boolean, val attempts: Int, val time: Long, val isTimeOut: Boolean = false): java.io.Serializable
+data class GameResult(
+    val isWin: Boolean,
+    val attempts: Int,
+    val time: Long,
+    val isTimeOut: Boolean = false,
+) : java.io.Serializable
 
-class GameServer(private val port: Int) {
-
+class GameServer(
+    private val port: Int,
+) {
     private var serverSocket: ServerSocket
     private val games = ConcurrentHashMap<String, GameSession>()
     private val clients = ConcurrentHashMap<Socket, String>()
@@ -44,7 +50,7 @@ class GameServer(private val port: Int) {
                 val request = input.readObject() as Map<*, *>
                 when (request["action"]) {
                     "createGame" -> {
-                        synchronized (this) {
+                        synchronized(this) {
                             val gameCode = generateGameCode()
                             val gameSession = GameSession()
                             games[gameCode] = gameSession
@@ -77,7 +83,7 @@ class GameServer(private val port: Int) {
                         }
                     }
                     "submitResult" -> {
-                        synchronized (this) {
+                        synchronized(this) {
                             val gameCode = clients[clientSocket]
                             if (gameCode != null) {
                                 val result = request["result"] as GameResult
@@ -103,8 +109,7 @@ class GameServer(private val port: Int) {
             }
         } catch (e: ClassCastException) {
             println("ClassCastException: ${e.message}")
-        }
-        catch (e: EOFException) {
+        } catch (e: EOFException) {
             println("Client disconnected: ${clientSocket.inetAddress.hostAddress}")
         } catch (e: SocketException) {
             println("SocketException: ${e.message}")
@@ -156,11 +161,14 @@ class GameServer(private val port: Int) {
     }
 }
 
-class GameSession() {
+class GameSession {
     internal val players = mutableMapOf<Socket, ObjectOutputStream>()
     private val results = mutableMapOf<Socket, GameResult>()
 
-    fun addPlayer(player: Socket, output: ObjectOutputStream): Boolean {
+    fun addPlayer(
+        player: Socket,
+        output: ObjectOutputStream,
+    ): Boolean {
         if (players.size < 2) {
             players.put(player, output)
             return true
@@ -168,9 +176,7 @@ class GameSession() {
         return false
     }
 
-    fun isReadyToStart(): Boolean {
-        return players.size == 2
-    }
+    fun isReadyToStart(): Boolean = players.size == 2
 
     fun startGame() {
         val secretCode = List(DEFAULT_SETTINGS.sequenceLength) { DEFAULT_SETTINGS.colorsList.random() }.joinToString(" ")
@@ -180,17 +186,16 @@ class GameSession() {
         }
     }
 
-    fun submitResult(socket: Socket, result: GameResult) {
+    fun submitResult(
+        socket: Socket,
+        result: GameResult,
+    ) {
         results.put(socket, result)
     }
 
-    fun isComplete(): Boolean {
-        return results.size == 2
-    }
+    fun isComplete(): Boolean = results.size == 2
 
-    fun getResults(): Map<Socket, GameResult> {
-        return results
-    }
+    fun getResults(): Map<Socket, GameResult> = results
 
     fun notifyPlayers(results: Map<Socket, GameResult>) {
         val sockets = results.keys
@@ -198,19 +203,20 @@ class GameSession() {
         val result2 = results[sockets.elementAt(1)] ?: return
         var player1Msg = ""
         var player2Msg = ""
-        val player1Results = if (result1.isTimeOut) {
-            "Time out\n"
-        } else {
-            (if (result1.isWin) "Success, " else "Failure, ") +
-                "Attempts: ${result1.attempts}, Time: ${"%.3f".format(result1.time / 1000.0)} seconds\n"
-        }
-        val player2Results = if (result2.isTimeOut) {
-            "Time out\n"
-        } else {
-            (if (result2.isWin) "Success, " else "Failure, ") +
-                "Attempts: ${result2.attempts}, Time: ${"%.3f".format(result2.time / 1000.0)} seconds\n"
-        }
-
+        val player1Results =
+            if (result1.isTimeOut) {
+                "Time out\n"
+            } else {
+                (if (result1.isWin) "Success, " else "Failure, ") +
+                    "Attempts: ${result1.attempts}, Time: ${"%.3f".format(result1.time / 1000.0)} seconds\n"
+            }
+        val player2Results =
+            if (result2.isTimeOut) {
+                "Time out\n"
+            } else {
+                (if (result2.isWin) "Success, " else "Failure, ") +
+                    "Attempts: ${result2.attempts}, Time: ${"%.3f".format(result2.time / 1000.0)} seconds\n"
+            }
 
         if (result1.isWin && result2.isWin) {
             if (result1.time < result2.time) {
@@ -247,18 +253,15 @@ class GameSession() {
             }
         }
     }
-
 }
 
 fun main(args: Array<String>) {
-
     try {
         val port = if (args.isNotEmpty()) args[0].toInt() else 12345
         val server = GameServer(port)
         server.start()
     } catch (e: NumberFormatException) {
         println("Port must be a number.")
-    }
-    catch (e: IOException) {
+    } catch (e: IOException) {
     }
 }

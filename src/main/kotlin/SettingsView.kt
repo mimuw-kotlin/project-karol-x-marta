@@ -11,7 +11,7 @@ import kotlinx.coroutines.delay
 import java.awt.Color
 
 @Composable
-fun settingsDialog(
+fun SettingsDialog(
     sequenceLength: Int,
     onSequenceLengthChange: (Int) -> Unit,
     maxAttempts: Int,
@@ -19,12 +19,12 @@ fun settingsDialog(
     colorsList: List<String>,
     onColorsListChange: (List<String>) -> Unit,
     onDismissRequest: () -> Unit,
-    onApply: () -> Unit
+    onApply: () -> Unit,
 ) {
-    var selectedSequenceLength by remember { mutableStateOf(sequenceLength) }
-    var selectedMaxAttempts by remember { mutableStateOf(maxAttempts) }
+    var selectedSequenceLength by remember { mutableIntStateOf(sequenceLength) }
+    var selectedMaxAttempts by remember { mutableIntStateOf(maxAttempts) }
     var selectedColorsList by remember { mutableStateOf(colorsList.joinToString(" ")) }
- //   var errorMessage by remember { mutableStateOf(" ") }
+    //   var errorMessage by remember { mutableStateOf(" ") }
     var isInputValid by remember { mutableStateOf(true) }
 
     var showError by remember { mutableStateOf(false) }
@@ -54,7 +54,7 @@ fun settingsDialog(
                     minValue = MIN_SEQ_LENGTH,
                     maxValue = MAX_SEQ_LENGTH,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    description = "Sequence Length"
+                    description = "Sequence Length",
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -69,14 +69,12 @@ fun settingsDialog(
                     minValue = MIN_ATTEMPTS,
                     maxValue = MAX_ATTEMPTS,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    description = "Max Attempts"
+                    description = "Max Attempts",
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Colors \n")
-
-
 
                 Row {
                     allColors.forEach { color ->
@@ -95,14 +93,16 @@ fun settingsDialog(
                                 }
                                 onColorsListChange(selectedColors)
                             },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color,
-                                uncheckedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color
-                            ),
-                            modifier = Modifier.semantics {
-                                contentDescription = "Color"
-                                testTag = color
-                            }
+                            colors =
+                                CheckboxDefaults.colors(
+                                    checkedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color,
+                                    uncheckedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color,
+                                ),
+                            modifier =
+                                Modifier.semantics {
+                                    contentDescription = "Color"
+                                    testTag = color
+                                },
                         )
                     }
                 }
@@ -112,7 +112,7 @@ fun settingsDialog(
                         text = "You must select at least $MIN_COLORS colors.",
                         color = MaterialTheme.colors.error,
                         style = MaterialTheme.typography.caption,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
                     )
 
                     LaunchedEffect(Unit) {
@@ -173,6 +173,6 @@ fun settingsDialog(
             Button(onClick = onDismissRequest) {
                 Text("Cancel")
             }
-        }
+        },
     )
 }

@@ -1,39 +1,37 @@
-import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
-import kotlinx.coroutines.delay
-import kotlin.collections.toMutableList
-import kotlin.system.exitProcess
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import androidx.compose.ui.platform.LocalClipboardManager
 import java.io.IOException
-
+import kotlin.collections.toMutableList
+import kotlin.system.exitProcess
 
 val MAX_SEQ_LENGTH = 6
 val MIN_SEQ_LENGTH = 3
@@ -45,8 +43,9 @@ val DEFAULT_SEQ_LENGTH = 4
 val DEFAULT_ATTEMPTS = 10
 val DEFAULT_COLORS_LIST = listOf("A", "B", "C", "D", "E", "F")
 
-
-enum class ColorByName(val color: Color) {
+enum class ColorByName(
+    val color: Color,
+) {
     RED(Color(0xffff3333)),
     GREEN(Color(0xff00c853)),
     BLUE(Color(0xff3232cd)),
@@ -54,19 +53,20 @@ enum class ColorByName(val color: Color) {
     PINK(Color(0xffff80ab)),
     LIGHT_BLUE(Color(0xff00ccff)),
     BROWN(Color(0xff795548)),
-    PURPLE(Color(0xffba68c8));
+    PURPLE(Color(0xffba68c8)),
 }
 
-val ALL_COLORS = mapOf(
-    "A" to ColorByName.RED.color,
-    "B" to ColorByName.GREEN.color,
-    "C" to ColorByName.BLUE.color,
-    "D" to ColorByName.ORANGE.color,
-    "E" to ColorByName.PINK.color,
-    "F" to ColorByName.LIGHT_BLUE.color,
-    "G" to ColorByName.BROWN.color,
-    "H" to ColorByName.PURPLE.color
-)
+val ALL_COLORS =
+    mapOf(
+        "A" to ColorByName.RED.color,
+        "B" to ColorByName.GREEN.color,
+        "C" to ColorByName.BLUE.color,
+        "D" to ColorByName.ORANGE.color,
+        "E" to ColorByName.PINK.color,
+        "F" to ColorByName.LIGHT_BLUE.color,
+        "G" to ColorByName.BROWN.color,
+        "H" to ColorByName.PURPLE.color,
+    )
 
 enum class DialogState {
     OFF,
@@ -81,22 +81,23 @@ enum class DialogState {
     SHOW_HOST_GAME_FIELD,
     SHOW_GAME_RESULTS,
     SHOW_WAITING_FOR_RESULTS,
-    SERVER_DISCONNECTED
+    SERVER_DISCONNECTED,
 }
 
-//val SERVER_HOST = "localhost"
-//val SERVER_PORT = 12345
+// val SERVER_HOST = "localhost"
+// val SERVER_PORT = 12345
 
 val DEFAULT_SETTINGS = Settings(sequenceLength = DEFAULT_SEQ_LENGTH, maxAttempts = DEFAULT_ATTEMPTS, colorsList = DEFAULT_COLORS_LIST)
 
-
-
 @Composable
-@Preview
-fun app(serverHost: String, serverPort: Int) {
+fun App(
+    serverHost: String,
+    serverPort: Int,
+    modifier: Modifier = Modifier,
+) {
     // Settings
-    var sequenceLength by remember { mutableStateOf(4) }
-    var maxAttempts by remember { mutableStateOf(10) }
+    var sequenceLength by remember { mutableIntStateOf(4) }
+    var maxAttempts by remember { mutableIntStateOf(10) }
     var colorsList by remember { mutableStateOf(listOf("A", "B", "C", "D", "E", "F")) }
     val settings = Settings(sequenceLength = sequenceLength, maxAttempts = maxAttempts, colorsList = colorsList)
 
@@ -132,15 +133,19 @@ fun app(serverHost: String, serverPort: Int) {
     val clipboardManager = LocalClipboardManager.current
 
     @Synchronized
-    fun endMultiplayerGame(time: Long, isWin: Boolean) {
+    fun endMultiplayerGame(
+        time: Long,
+        isWin: Boolean,
+    ) {
         if (areResultsSent) return
         areResultsSent = true
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (timeOuted)
+                if (timeOuted) {
                     client?.sendTimeOut()
-                else
+                } else {
                     client?.submitResult(GameResult(isWin, game.attempts, time))
+                }
                 state = DialogState.SHOW_WAITING_FOR_RESULTS
                 val response = client?.receiveResults()
                 withContext(Dispatchers.Main) {
@@ -166,14 +171,15 @@ fun app(serverHost: String, serverPort: Int) {
     }
 
     LaunchedEffect(timeManager.startTime, timeManager.pausedTime, state) {
-
-
-        while (timeManager.startTime != null && !gameOver && timeManager.pausedTime == null &&
-            state != DialogState.IS_PAUSED && state != DialogState.SERVER_DISCONNECTED) {
-
+        while (timeManager.startTime != null &&
+            !gameOver &&
+            timeManager.pausedTime == null &&
+            state != DialogState.IS_PAUSED &&
+            state != DialogState.SERVER_DISCONNECTED
+        ) {
             delay(10L)
             timeManager.updateTimer()
-            if ( timeManager.timer > 10000L && isMultiplayer && !timeOuted) {
+            if (timeManager.timer > 10000L && isMultiplayer && !timeOuted) {
                 timeOuted = true
                 timeManager.setGameEndedTime()
                 endMultiplayerGame(timeManager.timer, false)
@@ -184,8 +190,6 @@ fun app(serverHost: String, serverPort: Int) {
             timeManager.setTimer()
         }
     }
-
-
 
     fun closeSession() {
         CoroutineScope(Dispatchers.IO).launch {
@@ -205,8 +209,6 @@ fun app(serverHost: String, serverPort: Int) {
     }
 
     fun submitGuess() {
-
-
         if (timeManager.startTime == null) {
             timeManager.startTimer()
         }
@@ -272,7 +274,7 @@ fun app(serverHost: String, serverPort: Int) {
         println(state)
     }
 
-    fun resetToStartMultiplayer(secret : List<String>?) {
+    fun resetToStartMultiplayer(secret: List<String>?) {
         areResultsSent = false
         timeOuted = false
         text = ""
@@ -293,12 +295,13 @@ fun app(serverHost: String, serverPort: Int) {
             try {
                 println("Attempting to connect to the server...")
 
-                client = GameClient(
-                    serverHost,
-                    serverPort,
-                    onDisconnection = { if (isMultiplayer )state = DialogState.SERVER_DISCONNECTED },
-                    onError = { state = DialogState.SHOW_CODE_ERROR }
-                )
+                client =
+                    GameClient(
+                        serverHost,
+                        serverPort,
+                        onDisconnection = { if (isMultiplayer)state = DialogState.SERVER_DISCONNECTED },
+                        onError = { state = DialogState.SHOW_CODE_ERROR },
+                    )
                 withTimeout(5000L) {
                     client?.connect()
                 }
@@ -320,12 +323,10 @@ fun app(serverHost: String, serverPort: Int) {
                                 }
                             }
                         }
-
                     } else {
                         state = DialogState.SHOW_SERVER_ERROR
                         isMultiplayer = false
                         println("Error: Response is null")
-
                     }
                     state = DialogState.OFF
                 }
@@ -342,8 +343,6 @@ fun app(serverHost: String, serverPort: Int) {
                 }
             }
         }
-
-
     }
 
     fun joinMultiplayerGame() {
@@ -352,12 +351,13 @@ fun app(serverHost: String, serverPort: Int) {
             try {
                 println("Attempting to connect to the server...")
 
-                client = GameClient(
-                    serverHost,
-                    serverPort,
-                    onDisconnection = { if (isMultiplayer )state = DialogState.SERVER_DISCONNECTED },
-                    onError = { state = DialogState.SHOW_CODE_ERROR }
-                )
+                client =
+                    GameClient(
+                        serverHost,
+                        serverPort,
+                        onDisconnection = { if (isMultiplayer)state = DialogState.SERVER_DISCONNECTED },
+                        onError = { state = DialogState.SHOW_CODE_ERROR },
+                    )
                 withTimeout(5000L) {
                     client?.connect()
                 }
@@ -368,7 +368,6 @@ fun app(serverHost: String, serverPort: Int) {
                         println("Successfully joined the game with code: $joinGameCode")
                         val secretStr = client?.receiveSecretCode()
                         resetToStartMultiplayer(secretStr?.split(" ") ?: listOf())
-
                     }
                 }
             } catch (e: TimeoutCancellationException) {
@@ -403,18 +402,17 @@ fun app(serverHost: String, serverPort: Int) {
             Row(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
                 Text(
                     text = "Time: ${"%.3f".format(timeManager.timer / 1000.0)} s  ",
-                    modifier = Modifier.align(Alignment.CenterVertically)
+                    modifier = Modifier.align(Alignment.CenterVertically),
                 )
 
                 if (!isMultiplayer) {
-
                     if (!gameOver) {
                         Button(
                             onClick = {
                                 timeManager.pauseTimer()
                                 state = DialogState.IS_PAUSED
                             },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray),
                         ) {
                             Text("||", fontWeight = FontWeight.Bold)
                         }
@@ -423,7 +421,7 @@ fun app(serverHost: String, serverPort: Int) {
                             onClick = {
                                 resetGame()
                             },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray),
                         ) { Icon(Icons.Default.Refresh, contentDescription = "Restart") }
                     }
 
@@ -447,12 +445,11 @@ fun app(serverHost: String, serverPort: Int) {
                         isMultiplayer = !isMultiplayer
                         if (isMultiplayer) {
                             resetSingleplayerGame()
-                        }
-                        else if (client != null) {
+                        } else if (client != null) {
                             closeSession()
                             resetGame()
                         }
-                    }
+                    },
                 ) {
                     if (isMultiplayer) {
                         Icon(Icons.Default.Person, contentDescription = "Single Player")
@@ -460,19 +457,17 @@ fun app(serverHost: String, serverPort: Int) {
                         Icon(Icons.Default.Group, contentDescription = "Multiplayer")
                     }
                 }
-
-
             }
             if (gameOver) {
                 Row(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Button(
                         onClick = {
                             if (isMultiplayer) closeSession()
                             resetGame()
-                        }
+                        },
                     ) {
                         Text("New Game")
                     }
@@ -484,28 +479,30 @@ fun app(serverHost: String, serverPort: Int) {
             } else {
                 Row(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     GuessInput(
                         colorsList = settings.colorsList,
                         onSubmitGuess = { guess ->
                             currentGuess = guess
                             submitGuess()
-                        }, guessSize = settings.sequenceLength, reset = resetInput
+                        },
+                        guessSize = settings.sequenceLength,
+                        reset = resetInput,
                     )
                 }
             }
-
 
             // Dialogs
             when (state) {
                 DialogState.SHOW_SETTINGS -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Gray.copy(alpha = 1f))
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(Color.Gray.copy(alpha = 1f)),
                     )
-                    settingsDialog(
+                    SettingsDialog(
                         sequenceLength = sequenceLength,
                         onSequenceLengthChange = { sequenceLength = it },
                         maxAttempts = maxAttempts,
@@ -518,17 +515,18 @@ fun app(serverHost: String, serverPort: Int) {
                         },
                         onApply = {
                             resetGame()
-                        }
+                        },
                     )
                 }
 
                 DialogState.SHOW_SCORES -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Gray.copy(alpha = 1f))
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(Color.Gray.copy(alpha = 1f)),
                     )
-                    scoresDialog(
+                    ScoresDialog(
                         sequenceLength = sequenceLength,
                         maxAttempts = maxAttempts,
                         colorsNumber = colorsList.size,
@@ -536,15 +534,16 @@ fun app(serverHost: String, serverPort: Int) {
                         onDismissRequest = {
                             timeManager.resumeTimer()
                             state = DialogState.OFF
-                        }
+                        },
                     )
                 }
 
                 DialogState.IS_PAUSED -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Gray.copy(alpha = 1f))
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(Color.Gray.copy(alpha = 1f)),
                     )
                     AlertDialog(
                         onDismissRequest = { },
@@ -566,7 +565,7 @@ fun app(serverHost: String, serverPort: Int) {
                                 Text("Restart")
                                 Icon(Icons.Default.Refresh, contentDescription = "Restart")
                             }
-                        }
+                        },
                     )
                 }
 
@@ -580,7 +579,7 @@ fun app(serverHost: String, serverPort: Int) {
                                 state = DialogState.OFF
                                 isMultiplayer = false
                             }) { Text("OK") }
-                        }
+                        },
                     )
                 }
 
@@ -594,7 +593,7 @@ fun app(serverHost: String, serverPort: Int) {
                                 state = DialogState.OFF
                                 isMultiplayer = false
                             }) { Text("OK") }
-                        }
+                        },
                     )
                 }
 
@@ -611,15 +610,15 @@ fun app(serverHost: String, serverPort: Int) {
                                 onClick = {
                                     isHost = true
                                     startMultiplayerGameAsHost()
-                                }
+                                },
                             ) { Text("Host Game") }
                             Button(
                                 onClick = {
                                     state = DialogState.SHOW_JOIN_GAME_FIELD
                                     isHost = false
-                                }
+                                },
                             ) { Text("Join Game") }
-                        }
+                        },
                     )
                 }
 
@@ -629,13 +628,13 @@ fun app(serverHost: String, serverPort: Int) {
                         title = {
                             Box(
                                 modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) { Text("Game Code\n") }
                         },
                         text = {
                             Box(
                                 modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     text = "$gameCode",
@@ -649,13 +648,12 @@ fun app(serverHost: String, serverPort: Int) {
                                 clipboardManager.setText(AnnotatedString(gameCode ?: ""))
                             }) { Text("Copy code") }
                             Button(onClick = {
-                                //client?.handleDisconnection()
+                                // client?.handleDisconnection()
                                 resetGame()
                                 closeSession()
                             }) { Text("Exit") }
-                        }
+                        },
                     )
-
                 }
 
                 DialogState.SHOW_JOIN_GAME_FIELD -> {
@@ -666,7 +664,7 @@ fun app(serverHost: String, serverPort: Int) {
                             TextField(
                                 value = joinGameCode,
                                 onValueChange = { joinGameCode = it },
-                                label = { Text("Enter game code") }
+                                label = { Text("Enter game code") },
                             )
                         },
                         confirmButton = {
@@ -674,12 +672,13 @@ fun app(serverHost: String, serverPort: Int) {
                                 onClick = {
                                     state = DialogState.OFF
                                     joinMultiplayerGame()
-                                }
+                                },
                             ) { Text("Join") }
-                            Button(onClick = { resetGame()
-                                joinGameCode = ""} )
-                            { Text("Exit") }
-                        }
+                            Button(onClick = {
+                                resetGame()
+                                joinGameCode = ""
+                            }) { Text("Exit") }
+                        },
                     )
                 }
 
@@ -689,13 +688,14 @@ fun app(serverHost: String, serverPort: Int) {
                         title = { Text("Loading") },
                         text = {
                             Box(
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .background(Color.White, shape = CircleShape),
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(100.dp)
+                                        .background(Color.White, shape = CircleShape),
+                                contentAlignment = Alignment.Center,
                             ) { CircularProgressIndicator() }
                         },
-                        buttons = {}
+                        buttons = {},
                     )
                 }
 
@@ -705,13 +705,14 @@ fun app(serverHost: String, serverPort: Int) {
                         title = { Text("Waiting for other player") },
                         text = {
                             Box(
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .background(Color.White, shape = CircleShape),
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(100.dp)
+                                        .background(Color.White, shape = CircleShape),
+                                contentAlignment = Alignment.Center,
                             ) { CircularProgressIndicator() }
                         },
-                        buttons = {}
+                        buttons = {},
                     )
                 }
 
@@ -724,7 +725,7 @@ fun app(serverHost: String, serverPort: Int) {
                         },
                         confirmButton = {
                             Button(onClick = { state = DialogState.OFF }) { Text("OK") }
-                        }
+                        },
                     )
                 }
 
@@ -740,7 +741,7 @@ fun app(serverHost: String, serverPort: Int) {
                                 state = DialogState.OFF
                                 resetGame()
                             }) { Text("OK") }
-                        }
+                        },
                     )
                 }
 
@@ -751,7 +752,10 @@ fun app(serverHost: String, serverPort: Int) {
 }
 
 @Composable
-fun PreviousGuesses(guesses: List<Pair<List<String>, Feedback>>) {
+fun PreviousGuesses(
+    guesses: List<Pair<List<String>, Feedback>>,
+    modifier: Modifier = Modifier,
+) {
     Column {
         guesses.forEach { (guess, feedback) ->
             Column {
@@ -767,38 +771,39 @@ fun PreviousGuesses(guesses: List<Pair<List<String>, Feedback>>) {
 }
 
 @Composable
-fun DisplayColors(guess: List<String>) {
+fun DisplayColors(
+    guess: List<String>,
+    modifier: Modifier = Modifier,
+) {
     Row {
         guess.forEach { color ->
             Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(ALL_COLORS[color] ?: Color.White)
+                modifier =
+                    Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(ALL_COLORS[color] ?: Color.White),
             )
             Spacer(modifier = Modifier.width(10.dp))
         }
     }
 }
 
-
-fun main(args: Array<String>) = application {
-
-    val serverHost = if (args.isNotEmpty()) args[0] else "localhost"
-    val serverPort = if (args.size > 1) args[1].toIntOrNull() else 12345
-    if (serverPort == null) {
-        println("Invalid port number.")
-    }
-    else {
-        ScoresManager.connect()
-        ScoresManager.createScoresTable()
-        Window(
-            onCloseRequest = ::exitApplication,
-            title = "Mastermind - Game",
-            state = WindowState(width = 950.dp, height = 900.dp)
-        ) {
-            app(serverHost, serverPort)
+fun main(args: Array<String>) =
+    application {
+        val serverHost = if (args.isNotEmpty()) args[0] else "localhost"
+        val serverPort = if (args.size > 1) args[1].toIntOrNull() else 12345
+        if (serverPort == null) {
+            println("Invalid port number.")
+        } else {
+            ScoresManager.connect()
+            ScoresManager.createScoresTable()
+            Window(
+                onCloseRequest = ::exitApplication,
+                title = "Mastermind - Game",
+                state = WindowState(width = 950.dp, height = 900.dp),
+            ) {
+                App(serverHost, serverPort)
+            }
         }
     }
-
-}

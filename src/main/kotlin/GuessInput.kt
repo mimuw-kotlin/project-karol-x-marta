@@ -4,10 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Button
 import androidx.compose.material.DropdownMenu
@@ -33,7 +33,8 @@ fun GuessInput(
     colorsList: List<String>,
     onSubmitGuess: (List<String>) -> Unit,
     guessSize: Int,
-    reset: Boolean
+    reset: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     var currentGuess by remember(reset) { mutableStateOf(List(guessSize) { "" }) }
     var expandedIndex by remember { mutableStateOf(-1) }
@@ -41,28 +42,31 @@ fun GuessInput(
     Row {
         currentGuess.forEachIndexed { index, color ->
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(ALL_COLORS[color] ?: Color.White)
-                    .border(2.dp, if (color.isEmpty()) Color.Gray else Color.Transparent, CircleShape)
-                    .clickable {
-                        expandedIndex = if (expandedIndex == index) -1 else index
-                    }
-                    .testTag("$index")
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(ALL_COLORS[color] ?: Color.White)
+                        .border(2.dp, if (color.isEmpty()) Color.Gray else Color.Transparent, CircleShape)
+                        .clickable {
+                            expandedIndex = if (expandedIndex == index) -1 else index
+                        }.testTag("$index"),
             ) {
                 DropdownMenu(
                     expanded = expandedIndex == index,
                     onDismissRequest = { expandedIndex = -1 },
-                    modifier = Modifier.background(Color.White)
+                    modifier = Modifier.background(Color.White),
                 ) {
                     DropdownMenuItem(
                         onClick = {
                             currentGuess = currentGuess.toMutableList().apply { set(index, "") }
                             expandedIndex = -1
                         },
-                        modifier = Modifier.height(30.dp).padding(vertical = 2.dp)
-                            .testTag("No Color")
+                        modifier =
+                            Modifier
+                                .height(30.dp)
+                                .padding(vertical = 2.dp)
+                                .testTag("No Color"),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(
@@ -81,8 +85,11 @@ fun GuessInput(
                                 currentGuess = currentGuess.toMutableList().apply { set(index, colorOption) }
                                 expandedIndex = -1
                             },
-                            modifier = Modifier.height(30.dp).padding(vertical = 2.dp)
-                                .testTag(colorOption)
+                            modifier =
+                                Modifier
+                                    .height(30.dp)
+                                    .padding(vertical = 2.dp)
+                                    .testTag(colorOption),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
@@ -93,10 +100,11 @@ fun GuessInput(
                                     },
                                 )
                                 Box(
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clip(CircleShape)
-                                        .background(ALL_COLORS[colorOption] ?: Color.White)
+                                    modifier =
+                                        Modifier
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(ALL_COLORS[colorOption] ?: Color.White),
                                 )
                             }
                         }
@@ -107,13 +115,13 @@ fun GuessInput(
         }
         Button(
             onClick = {
-            onSubmitGuess(currentGuess)
-            currentGuess = List(guessSize) { "" }
+                onSubmitGuess(currentGuess)
+                currentGuess = List(guessSize) { "" }
             },
             Modifier.semantics {
                 contentDescription = "Submit"
             },
-            enabled = currentGuess.none { it.isEmpty() }
+            enabled = currentGuess.none { it.isEmpty() },
         ) {
             Text("Submit")
         }

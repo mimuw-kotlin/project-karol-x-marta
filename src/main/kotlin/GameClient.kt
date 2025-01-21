@@ -1,14 +1,14 @@
 import java.io.EOFException
 import java.io.IOException
-import java.net.Socket
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.net.Socket
 
 class GameClient(
     private val host: String,
     private val port: Int,
     private val onDisconnection: () -> Unit,
-    private val onError: () -> Unit
+    private val onError: () -> Unit,
 ) {
     internal lateinit var socket: Socket
     internal lateinit var input: ObjectInputStream
@@ -19,7 +19,6 @@ class GameClient(
     private var secretCode: String? = null
     private var results: String? = null
     private var joinGameResponse: Boolean? = null
-
 
     fun connect() {
         try {
@@ -40,9 +39,10 @@ class GameClient(
     }
 
     private fun startListening() {
-        listeningThread = Thread {
-            listenForMessages()
-        }
+        listeningThread =
+            Thread {
+                listenForMessages()
+            }
         listeningThread?.start()
     }
 
@@ -51,7 +51,7 @@ class GameClient(
             while (!socket.isClosed && socket.isConnected) {
                 val response = input.readObject() as Map<*, *>
                 println("Received response: $response")
-                synchronized (this) {
+                synchronized(this) {
                     when (response["status"]) {
                         "opponentDisconnected" -> handleDisconnection()
                         "secretCode" -> handleSecretCode(response)
@@ -65,18 +65,16 @@ class GameClient(
                         }
                     }
                 }
-
             }
         } catch (e: EOFException) {
-            if (results == null)
+            if (results == null) {
                 handleDisconnection()
+            }
             // w przeciwnym wypadku nie wyświetlamy błędu, tylko klient ogląda wyniki
-        }
-        catch (e: ClassCastException) {
+        } catch (e: ClassCastException) {
             println("ClassCastException in listening thread: ${e.message}")
             handleDisconnection()
-        }
-        catch (e: IOException) {
+        } catch (e: IOException) {
             println("IOException in listening thread: ${e.message}")
             handleDisconnection()
         } catch (e: Exception) {
@@ -94,7 +92,7 @@ class GameClient(
                     (this as java.lang.Object).wait()
                 }
                 val code = gameCode
-                //gameCode = null
+                // gameCode = null
                 return code
             } catch (e: IOException) {
                 println("IOException: ${e.message}")
@@ -208,5 +206,4 @@ class GameClient(
         println("Game full or doesn't exist.")
         onError()
     }
-
 }

@@ -9,6 +9,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -19,23 +20,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun scoresDialog(
+fun ScoresDialog(
     sequenceLength: Int,
     maxAttempts: Int,
     colorsNumber: Int,
     scoresManager: ScoresManager,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    var selectedSequenceLength by remember { mutableStateOf(sequenceLength) }
-    var selectedMaxAttempts by remember { mutableStateOf(maxAttempts) }
-    var selectedColorsNumber by remember { mutableStateOf(colorsNumber) }
+    var selectedSequenceLength by remember { mutableIntStateOf(sequenceLength) }
+    var selectedMaxAttempts by remember { mutableIntStateOf(maxAttempts) }
+    var selectedColorsNumber by remember { mutableIntStateOf(colorsNumber) }
     var showScores by remember { mutableStateOf(false) }
     var scores by remember { mutableStateOf(listOf<Double>()) }
 
     LaunchedEffect(selectedSequenceLength, selectedMaxAttempts, selectedColorsNumber) {
-        scores = withContext(Dispatchers.IO) {
-            scoresManager.getFilteredScores(selectedSequenceLength, selectedMaxAttempts, selectedColorsNumber)
-        }
+        scores =
+            withContext(Dispatchers.IO) {
+                scoresManager.getFilteredScores(selectedSequenceLength, selectedMaxAttempts, selectedColorsNumber)
+            }
         showScores = true
     }
 
@@ -51,7 +54,7 @@ fun scoresDialog(
                     minValue = MIN_SEQ_LENGTH,
                     maxValue = MAX_SEQ_LENGTH,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    description = "Sequence Length"
+                    description = "Sequence Length",
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -63,7 +66,7 @@ fun scoresDialog(
                     minValue = MIN_ATTEMPTS,
                     maxValue = MAX_ATTEMPTS,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    description = "Max Attempts"
+                    description = "Max Attempts",
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -75,7 +78,7 @@ fun scoresDialog(
                     minValue = MIN_COLORS,
                     maxValue = MAX_COLORS,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    description = "Colors Number"
+                    description = "Colors Number",
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -98,6 +101,6 @@ fun scoresDialog(
                     Text("Cancel")
                 }
             }
-        }
+        },
     )
 }

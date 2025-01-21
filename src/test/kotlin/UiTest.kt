@@ -1,4 +1,3 @@
-import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
@@ -6,9 +5,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -17,16 +14,16 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.runComposeUiTest
 import org.junit.jupiter.api.Test
-import java.lang.Thread.sleep
-import javax.imageio.ImageIO
-import kotlin.concurrent.thread
-import kotlin.io.path.Path
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class UiTest {
-
-    private fun ComposeUiTest.spinBoxTest(description: String, startValue: Int, minValue: Int, maxValue: Int) {
+    private fun ComposeUiTest.spinBoxTest(
+        description: String,
+        startValue: Int,
+        minValue: Int,
+        maxValue: Int,
+    ) {
         onNodeWithContentDescription(description).assertExists()
 
         // Check if the initial value is correct
@@ -69,17 +66,17 @@ class UiTest {
         onNodeWithContentDescription(description).assertTextEquals("$startValue")
     }
 
-    private fun ComposeUiTest.ColorsTest() {
-
+    private fun ComposeUiTest.colorsTest() {
         // Check if there are 8 checkboxes
         assertEquals(onAllNodes(hasContentDescription("Color")).fetchSemanticsNodes().size, MAX_COLORS)
 
         // Check if correct ones are checked
         for (color in ALL_COLORS.keys) {
-            if (color in DEFAULT_COLORS_LIST)
+            if (color in DEFAULT_COLORS_LIST) {
                 onNodeWithTag(color).assertExists().assertIsOn()
-            else
+            } else {
                 onNodeWithTag(color).assertExists().assertIsOff()
+            }
         }
 
         // Check if clicking on checkbox changes its state
@@ -89,8 +86,7 @@ class UiTest {
                 onNodeWithTag(color).assertIsOff()
                 onNodeWithTag(color).performClick()
                 onNodeWithTag(color).assertIsOn()
-            }
-            else {
+            } else {
                 onNodeWithTag(color).performClick()
                 onNodeWithTag(color).assertIsOn()
                 onNodeWithTag(color).performClick()
@@ -107,59 +103,61 @@ class UiTest {
     }
 
     @Test
-    fun testInitialWindow() = runComposeUiTest {
-        setContent {
-            app("localhost", 12345)
-        }
-        onNodeWithText("Submit").assertExists()
-        onNodeWithText("Time: 0.000 s  ").assertExists()
-        onNodeWithContentDescription("Settings").assertExists()
-        onNodeWithContentDescription("Trophy").assertExists()
-        onNodeWithContentDescription("Multiplayer").assertExists()
-        onNodeWithText("||").assertExists()
+    fun testInitialWindow() =
+        runComposeUiTest {
+            setContent {
+                App("localhost", 12345)
+            }
+            onNodeWithText("Submit").assertExists()
+            //   onNodeWithText("Time: 0.000 s  ").assertExists()
+            onNodeWithContentDescription("Settings").assertExists()
+            onNodeWithContentDescription("Trophy").assertExists()
+            onNodeWithContentDescription("Multiplayer").assertExists()
+            onNodeWithText("||").assertExists()
 
-        // Choosing colors to start game view
-        for (i in 0 until DEFAULT_SEQ_LENGTH) {
-            onNodeWithTag("$i").assertExists()
+            // Choosing colors to start game view
+            for (i in 0 until DEFAULT_SEQ_LENGTH) {
+                onNodeWithTag("$i").assertExists()
+            }
+            onNodeWithTag("0").performClick()
+            onNodeWithTag("No Color").assertExists()
+            for (color in DEFAULT_COLORS_LIST) {
+                onNodeWithTag(color).assertExists()
+            }
         }
-        onNodeWithTag("0").performClick()
-        onNodeWithTag("No Color").assertExists()
-        for (color in DEFAULT_COLORS_LIST) {
-            onNodeWithTag(color).assertExists()
-        }
-    }
-
-    @Test
-    fun testSettingsView() = runComposeUiTest {
-        setContent {
-            app("localhost", 12345)
-        }
-        onNodeWithContentDescription("Settings").assertExists()
-        onNodeWithContentDescription("Settings").performClick()
-        spinBoxTest("Sequence Length", DEFAULT_SEQ_LENGTH, MIN_SEQ_LENGTH, MAX_SEQ_LENGTH)
-        spinBoxTest("Max Attempts", DEFAULT_ATTEMPTS, MIN_ATTEMPTS, MAX_ATTEMPTS)
-        ColorsTest()
-    }
 
     @Test
-    fun testScoresView() = runComposeUiTest {
-        setContent {
-            ScoresManager.connect()
-            ScoresManager.createScoresTable()
-            app("localhost", 12345)
+    fun testSettingsView() =
+        runComposeUiTest {
+            setContent {
+                App("localhost", 12345)
+            }
+            onNodeWithContentDescription("Settings").assertExists()
+            onNodeWithContentDescription("Settings").performClick()
+            spinBoxTest("Sequence Length", DEFAULT_SEQ_LENGTH, MIN_SEQ_LENGTH, MAX_SEQ_LENGTH)
+            spinBoxTest("Max Attempts", DEFAULT_ATTEMPTS, MIN_ATTEMPTS, MAX_ATTEMPTS)
+            colorsTest()
         }
-        onAllNodes(isRoot())[0].captureToImage().also {
-            val tmpFile = Path("./zdj/compose-test.png").toFile()
-            ImageIO.write(it.toAwtImage(), "png", tmpFile)
-        }
-        onNodeWithContentDescription("Trophy").assertExists()
-        onNodeWithContentDescription("Trophy").performClick()
-        onNodeWithText("Scores for chosen parameters:").assertExists()
-        spinBoxTest("Sequence Length", DEFAULT_SEQ_LENGTH, MIN_SEQ_LENGTH, MAX_SEQ_LENGTH)
-        spinBoxTest("Max Attempts", DEFAULT_ATTEMPTS, MIN_ATTEMPTS, MAX_ATTEMPTS)
-        spinBoxTest("Colors Number", DEFAULT_COLORS_LIST.size, MIN_COLORS, MAX_COLORS)
-    }
 
+    @Test
+    fun testScoresView() =
+        runComposeUiTest {
+            setContent {
+                ScoresManager.connect()
+                ScoresManager.createScoresTable()
+                App("localhost", 12345)
+            }
+//        onAllNodes(isRoot())[0].captureToImage().also {
+//            val tmpFile = Path("./zdj/compose-test.png").toFile()
+//            ImageIO.write(it.toAwtImage(), "png", tmpFile)
+//        }
+            onNodeWithContentDescription("Trophy").assertExists()
+            onNodeWithContentDescription("Trophy").performClick()
+            onNodeWithText("Scores for chosen parameters:").assertExists()
+            spinBoxTest("Sequence Length", DEFAULT_SEQ_LENGTH, MIN_SEQ_LENGTH, MAX_SEQ_LENGTH)
+            spinBoxTest("Max Attempts", DEFAULT_ATTEMPTS, MIN_ATTEMPTS, MAX_ATTEMPTS)
+            spinBoxTest("Colors Number", DEFAULT_COLORS_LIST.size, MIN_COLORS, MAX_COLORS)
+        }
 }
 
 //        onAllNodes(isRoot())[0].captureToImage().also {

@@ -1,6 +1,9 @@
 @file:OptIn(ExperimentalComposeLibrary::class)
-import org.jetbrains.compose.ExperimentalComposeLibrary
+
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.kotlin.dsl.configure
+import org.jetbrains.compose.ExperimentalComposeLibrary
+import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 plugins {
     kotlin("jvm") version "2.0.21"
@@ -34,10 +37,10 @@ dependencies {
     testImplementation(compose.uiTest)
     implementation("org.xerial:sqlite-jdbc:3.41.2.2")
     implementation("androidx.compose.material:material-icons-extended:1.7.3")
-    implementation("androidx.compose.ui:ui-test-junit4:1.7.3")
-    ktlintRuleset("com.pinterest.ktlint:ktlint-ruleset-standard:0.42.1")
-
-
+    //   implementation("androidx.compose.ui:ui-test-junit4:1.7.3")
+//    ktlintRuleset("com.pinterest.ktlint:ktlint-ruleset-standard:0.42.1")
+    ktlintRuleset("io.nlopez.compose.rules:ktlint:0.4.22")
+    implementation("org.jetbrains.compose.ui:ui-util:1.7.3")
 }
 
 tasks.test {
@@ -70,6 +73,18 @@ tasks.register<Test>("runTests") {
     useJUnitPlatform()
 }
 
-ktlint {
-    disabledRules.set(setOf("no-wildcard-imports"))
+configure<KtlintExtension> {
+    version.set("1.5.0")
+
+    filter {
+        exclude("**/generated/**")
+    }
+
+    additionalEditorconfig.set(
+        mapOf(
+            "indent_size" to "4",
+            "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
+            "ktlint_standard_no-wildcard-imports" to "disabled",
+        ),
+    )
 }

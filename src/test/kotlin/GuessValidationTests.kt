@@ -3,7 +3,6 @@ import kotlin.random.Random
 import kotlin.test.assertTrue
 
 class GuessValidationTests {
-
     @Test
     fun wrongGuessLength() {
         for (sequenceLength in MIN_SEQ_LENGTH..MAX_SEQ_LENGTH) {

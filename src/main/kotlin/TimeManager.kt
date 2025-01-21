@@ -1,13 +1,13 @@
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 class TimeManager {
     var startTime: Long? by mutableStateOf(null)
     var pausedTime: Long? by mutableStateOf(null)
-    var timer: Long by mutableStateOf(0L)
-    var gameEndedTime: Long by mutableStateOf(0L)
+    var timer: Long by mutableLongStateOf(0L)
+    var gameEndedTime: Long by mutableLongStateOf(0L)
 
     fun startTimer() {
         startTime = System.currentTimeMillis()

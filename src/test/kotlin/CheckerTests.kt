@@ -3,7 +3,6 @@ import kotlin.random.Random
 import kotlin.test.assertEquals
 
 class CheckerTests {
-
     @Test
     fun checkAllCorrect() {
         for (sequenceLength in MIN_SEQ_LENGTH..MAX_SEQ_LENGTH) {

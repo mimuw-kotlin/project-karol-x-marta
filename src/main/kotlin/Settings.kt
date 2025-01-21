@@ -1,5 +1,10 @@
-class Settings(val sequenceLength: Int, val maxAttempts: Int, val colorsList: List<String>) {
+class Settings(
+    val sequenceLength: Int,
+    val maxAttempts: Int,
+    val colorsList: List<String>,
+) {
     val numberOfColors = colorsList.size
+
     init {
         require(sequenceLength in MIN_SEQ_LENGTH..MAX_SEQ_LENGTH) {
             "Sequence length should be from $MIN_SEQ_LENGTH to $MAX_SEQ_LENGTH"

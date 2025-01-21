@@ -1,4 +1,7 @@
-class Player(private val sequenceLength: Int, private val colorsList: List<String>) {
+class Player(
+    private val sequenceLength: Int,
+    private val colorsList: List<String>,
+) {
     fun makeGuess(): List<String> {
         while (true) {
             println("Enter your guess ($sequenceLength colors separated by spaces):")
@@ -11,7 +14,10 @@ class Player(private val sequenceLength: Int, private val colorsList: List<Strin
         }
     }
 
-    fun validateGuess(guess: MutableList<String>, colorsList: List<String>): Boolean {
+    fun validateGuess(
+        guess: MutableList<String>,
+        colorsList: List<String>,
+    ): Boolean {
         for (i in guess.indices) {
             guess[i] = guess[i].uppercase()
         }

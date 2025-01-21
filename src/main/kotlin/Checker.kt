@@ -1,5 +1,6 @@
-class Checker(val secretCode: List<String>) {
-
+class Checker(
+    val secretCode: List<String>,
+) {
     fun checkGuess(guess: List<String>): Feedback {
         var correctCount = 0
         var misplacedCount = 0
