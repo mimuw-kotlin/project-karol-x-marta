@@ -8,7 +8,7 @@
 ## Description
 Mastermind to prosta gra planszowa, w której gracz próbuje odgadnąć ukryty kod składający się z kolorowych pionków. W podstawowej wersji gry gracz będzie miał do dyspozycji 8 kolorów, z których będzie mógł wybrać 4, aby stworzyć swój kod. Po każdym ruchu gracz będzie otrzymywał informacje zwrotne, które pomogą mu odgadnąć kod. Gra kończy się, gdy gracz odgadnie kod lub skończy się mu liczba prób.
 
-## Features (released and planned)
+## Features
 - single player mode
 - several difficulty levels
 - multiplayer 1v1 web mode
@@ -22,22 +22,45 @@ Mastermind to prosta gra planszowa, w której gracz próbuje odgadnąć ukryty k
 - tests
 - database with time scores
 
-## Game v2 - plan
-W drugiej części dodamy możliwość gry wieloosobowej, w której gracze będą mogli rywalizować ze sobą na sieciowo, dodatkowe poziomy trudności i dopracujemy wygląd.
+## Game v2
+- multiplayer mode
+- improved GUI
+- more tests
 
 ## Libraries
 - Compose 
 - JUnit
 - kotlinx
 - sqlite-jdbc
-- ktor (planowane w Game v2)
+- ktLint
 
 
 ## How to run
-Właściwa gra (z gui) może być włączona poprzez ./gradlew run.
+Dodtkowo, można uruchamiać grę poprzez gradelw:
+
+- Aplikacja gry z GUI:
+
+Właściwa gra (z gui) może być włączona poprzez ./gradlew runClient. 
+Domyślnie uruchomi się z założeniem, że serwer znajduje się na locahoście na porcie 12345. 
+Można to zmienić argumentami uruchomienia. 
+
+Sposób podawania argumetów: -Pargs"flaga, wartość, flaga2, wartość...".
+
+Dostępne flagi:
+  -host,
+  -port.
+
+Przykładowe wywołanie: ./gradlew runClient -Pargs="-host, 'localhost', -port, 12346"
+
+- Serwer (dla trybu multiplayer):
+
+Serwer można uruchomić poprzez ./gradlew runServer na domyślnym porcie 12345 lub podając port jako argument wywołania, np. ./gradlew runServer -Pargs="12346".
+
+
+- Wersja terminalowa (tylko single player):
 
 Zostawiliśmy dodatkowo wersję terminalową, którą można uruchomić poprzez ./gradlew runTerminal,
-gdzie można dołączyć flagi w sposób -Pargs"flaga, wartość, flaga2, wartość...".
+gdzie można dołączyć flagi w ten sam sposób co w przypadku GUI.
 
 Dostępne flagi:
 -l (sequence length) - od 3 do 6,
@@ -47,6 +70,11 @@ Dostępne flagi:
 Przykładowe wywołanie: ./gradlew runTerminal -Pargs="-l, 4, -a, 10, -c, red blue green yellow"
 Flagi są opcjonalne, domyślne wartości to: -l 4, -a 10, -c A B C D E F.
 
-Uruchamianie gry w wersji terminalowej ze względów estetycznych zalecamy jednak z poziomu IDE.
+- Testy:
 
 Testy można uruchomić poprzez ./gradlew runTests.
+
+#### Uruchamianie gry z poziomu IDE:
+- Aplikacja gry z GUI: App.kt
+- Serwer: GameServer.kt
+- Aplikacja gry z terminala (tylko single player): Main.kt

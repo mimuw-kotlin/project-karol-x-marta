@@ -51,6 +51,15 @@ kotlin {
     jvmToolchain(21)
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType<JavaCompile> {
+    options.release.set(21)
+}
+
 application {
     mainClass.set("AppKt")
 }
@@ -58,6 +67,22 @@ application {
 tasks.register<JavaExec>("runTerminal") {
     group = "application"
     mainClass.set("MainKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    standardInput = System.`in`
+    args = project.findProperty("args")?.toString()?.split(", ") ?: emptyList()
+}
+
+tasks.register<JavaExec>("runServer") {
+    group = "application"
+    mainClass.set("GameServerKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    standardInput = System.`in`
+    args = project.findProperty("args")?.toString()?.split(", ") ?: emptyList()
+}
+
+tasks.register<JavaExec>("runClient") {
+    group = "application"
+    mainClass.set("AppKt")
     classpath = sourceSets["main"].runtimeClasspath
     standardInput = System.`in`
     args = project.findProperty("args")?.toString()?.split(", ") ?: emptyList()
@@ -73,6 +98,8 @@ tasks.register<Test>("runTests") {
     useJUnitPlatform()
 }
 
+
+
 configure<KtlintExtension> {
     version.set("1.5.0")
 
@@ -87,4 +114,10 @@ configure<KtlintExtension> {
             "ktlint_standard_no-wildcard-imports" to "disabled",
         ),
     )
+}
+tasks.named<Tar>("distTar") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+tasks.named<Zip>("distZip") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

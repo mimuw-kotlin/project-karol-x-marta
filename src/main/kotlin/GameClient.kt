@@ -70,7 +70,7 @@ class GameClient(
             if (results == null) {
                 handleDisconnection()
             }
-            // w przeciwnym wypadku nie wyświetlamy błędu, tylko klient ogląda wyniki
+            // else: we have the results so we don't need server anymore and disconnection is ok
         } catch (e: ClassCastException) {
             println("ClassCastException in listening thread: ${e.message}")
             handleDisconnection()
@@ -86,13 +86,12 @@ class GameClient(
     fun createGame(): String? {
         synchronized(this) {
             try {
-                println("Sending game settings to the server...")
-                output.writeObject(mapOf("action" to "createGame")) // Send settings to the server
+                println("Creating game on server...")
+                output.writeObject(mapOf("action" to "createGame"))
                 while (gameCode == null) {
-                    (this as java.lang.Object).wait()
+                    (this as Object).wait()
                 }
                 val code = gameCode
-                // gameCode = null
                 return code
             } catch (e: IOException) {
                 println("IOException: ${e.message}")
@@ -110,11 +109,11 @@ class GameClient(
                 println("Sending join game request to the server...")
                 output.writeObject(mapOf("action" to "joinGame", "gameCode" to code))
                 while (joinGameResponse == null) {
-                    (this as java.lang.Object).wait()
+                    (this as Object).wait()
                 }
                 val response = joinGameResponse
                 joinGameResponse = null
-                return response ?: false
+                return response == true
             } catch (e: IOException) {
                 println("IOException: ${e.message}")
                 return false
@@ -138,47 +137,41 @@ class GameClient(
     fun sendTimeOut() {
         println("Sending timeout to the server.")
         val result = GameResult(false, 0, 0, true)
-        try {
-            output.writeObject(mapOf("action" to "submitResult", "result" to result))
-        } catch (e: IOException) {
-            println("IOException: ${e.message}")
-        } catch (e: Exception) {
-            println("Exception: ${e.message}")
-        }
+        submitResult(result)
     }
 
     @Synchronized
     private fun handleJoined() {
         joinGameResponse = true
         println("Player joined the game")
-        (this as java.lang.Object).notifyAll()
+        (this as Object).notifyAll()
     }
 
     @Synchronized
     private fun handleGameCode(response: Map<*, *>) {
         gameCode = response["gameCode"] as? String
         println("Game code received: $gameCode")
-        (this as java.lang.Object).notifyAll()
+        (this as Object).notifyAll()
     }
 
     @Synchronized
     private fun handleSecretCode(response: Map<*, *>) {
         secretCode = response["secretCode"] as? String
-        println("Secret code received: $secretCode")
-        (this as java.lang.Object).notifyAll()
+        println("Received secret code.")
+        (this as Object).notifyAll()
     }
 
     @Synchronized
     private fun handleResults(response: Map<*, *>) {
         results = response["results"] as? String
-        println("Results received: $results")
-        (this as java.lang.Object).notifyAll()
+        println("Received results.")
+        (this as Object).notifyAll()
     }
 
     @Synchronized
     fun receiveSecretCode(): String {
         while (secretCode == null) {
-            (this as java.lang.Object).wait()
+            (this as Object).wait()
         }
         val code = secretCode!!
         secretCode = null
@@ -188,16 +181,15 @@ class GameClient(
     @Synchronized
     fun receiveResults(): String {
         while (results == null) {
-            (this as java.lang.Object).wait()
+            (this as Object).wait()
         }
         val res = results!!
-//        results = null
         return res
     }
 
     @Synchronized
     fun handleDisconnection() {
-        println("Disconnected from server.")
+        println("Disconnected from the server.")
         onDisconnection()
     }
 

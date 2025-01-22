@@ -23,21 +23,12 @@ fun SettingsDialog(
 ) {
     var selectedSequenceLength by remember { mutableIntStateOf(sequenceLength) }
     var selectedMaxAttempts by remember { mutableIntStateOf(maxAttempts) }
-    var selectedColorsList by remember { mutableStateOf(colorsList.joinToString(" ")) }
-    //   var errorMessage by remember { mutableStateOf(" ") }
     var isInputValid by remember { mutableStateOf(true) }
 
     var showError by remember { mutableStateOf(false) }
 
     var selectedColors by remember { mutableStateOf(colorsList) }
     val allColors = ALL_COLORS.keys
-
-    fun validateColorsList(input: List<String>): Boolean {
-        val colors = input // .split(" ").map(String::trim)
-        return colors.all { it.matches(Regex("^[A-Z]+$")) } &&
-            colors.size in MIN_COLORS..MAX_COLORS &&
-            colors.toSet().size == colors.size
-    }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -56,7 +47,6 @@ fun SettingsDialog(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Sequence Length",
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Max Attempts\n")
@@ -71,16 +61,13 @@ fun SettingsDialog(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Max Attempts",
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Colors \n")
-
                 Row {
                     allColors.forEach { color ->
                         val isChecked = selectedColors.contains(color)
                         val canUncheck = selectedColors.size > MIN_COLORS
-
                         Checkbox(
                             checked = isChecked,
                             onCheckedChange = {
@@ -120,48 +107,6 @@ fun SettingsDialog(
                         showError = false
                     }
                 }
-
-//                Row(verticalAlignment = Alignment.CenterVertically) {
-//                    TextField(
-//                        value = selectedColorsList,
-//                        onValueChange = {
-//                            selectedColorsList = it
-//                            val listOfColors = it.uppercase().split(" ").map(String::trim)
-//                            isInputValid = validateColorsList(listOfColors)
-//                            if (isInputValid) {
-//                                errorMessage = " "
-//                                onColorsListChange(listOfColors)
-//                            } else {
-//                                errorMessage = "Invalid format. Please enter colors separated by spaces."
-//                            }
-//                        },
-//                        modifier = Modifier
-//                            .fillMaxWidth(0.9f)
-//                            .onFocusChanged { focusState ->
-//                                if (!focusState.isFocused && !isInputValid) {
-//                                    errorMessage = "Invalid format. Please enter colors separated by spaces."
-//                                }
-//                            },
-//                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-//                        keyboardActions = KeyboardActions(onDone = {
-//                            // Hide the keyboard when the user presses the Done button
-//                        })
-//                    )
-//                    IconButton(onClick = {
-//                        selectedColorsList = colorsList.joinToString(" ")
-//                        errorMessage = ""
-//                    }) {
-//                        Icon(Icons.Default.Refresh, contentDescription = "Reset to previous value")
-//                    }
-//                }
-//                if (errorMessage.isNotEmpty()) {
-//                    Text(
-//                        text = errorMessage,
-//                        color = MaterialTheme.colors.error,
-//                        style = MaterialTheme.typography.caption,
-//                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-//                    )
-//                }
             }
         },
         confirmButton = {

@@ -22,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.default
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
@@ -84,9 +87,7 @@ enum class DialogState {
     SERVER_DISCONNECTED,
 }
 
-// val SERVER_HOST = "localhost"
-// val SERVER_PORT = 12345
-
+val TIMEOUT = 180000L
 val DEFAULT_SETTINGS = Settings(sequenceLength = DEFAULT_SEQ_LENGTH, maxAttempts = DEFAULT_ATTEMPTS, colorsList = DEFAULT_COLORS_LIST)
 
 @Composable
@@ -111,13 +112,6 @@ fun App(
     var gameOver by remember { mutableStateOf(false) }
     val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
     var currentGuess by remember { mutableStateOf(List(0) { "" }) }
-
-    // Timer
-//    var startTime by remember { mutableStateOf<Long?>(null) }
-//    var pausedTime by remember { mutableStateOf<Long?>(null) }
-//    var timer by remember { mutableStateOf(0L) }
-//    var gameWonTime by remember { mutableStateOf(0L) }
-
     val timeManager = remember { TimeManager() }
 
     // Multiplayer Mode
@@ -152,7 +146,6 @@ fun App(
                     if (response != null) {
                         results = response
                         state = DialogState.SHOW_GAME_RESULTS
-                        println("Results: $results")
                     } else {
                         println("Error: Received null response from server")
                         state = DialogState.SHOW_SERVER_ERROR
@@ -179,7 +172,7 @@ fun App(
         ) {
             delay(10L)
             timeManager.updateTimer()
-            if (timeManager.timer > 10000L && isMultiplayer && !timeOuted) {
+            if (timeManager.timer > TIMEOUT && isMultiplayer && !timeOuted) {
                 timeOuted = true
                 timeManager.setGameEndedTime()
                 endMultiplayerGame(timeManager.timer, false)
@@ -248,32 +241,6 @@ fun App(
         state = DialogState.OFF
     }
 
-    fun resetSingleplayerGame() {
-        areResultsSent = false
-        timeOuted = false
-        text = ""
-        gameOver = false
-        guesses.clear()
-        game = Game(settings)
-        timeManager.reset()
-        resetInput = !resetInput
-        state = DialogState.SHOW_MULTIPLAYER_MODES
-    }
-
-    fun printbeforeresetgame() {
-        println(areResultsSent)
-        println(timeOuted)
-        println(text)
-        println(gameOver)
-        println(guesses)
-        println(game)
-        println(timeManager)
-        println(resetInput)
-        println(isMultiplayer)
-        println(isHost)
-        println(state)
-    }
-
     fun resetToStartMultiplayer(secret: List<String>?) {
         areResultsSent = false
         timeOuted = false
@@ -293,8 +260,6 @@ fun App(
         state = DialogState.IS_LOADING
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                println("Attempting to connect to the server...")
-
                 client =
                     GameClient(
                         serverHost,
@@ -302,6 +267,7 @@ fun App(
                         onDisconnection = { if (isMultiplayer)state = DialogState.SERVER_DISCONNECTED },
                         onError = { state = DialogState.SHOW_CODE_ERROR },
                     )
+
                 withTimeout(5000L) {
                     client?.connect()
                 }
@@ -310,9 +276,8 @@ fun App(
                 withContext(Dispatchers.Main) {
                     if (response != null) {
                         gameCode = response
-                        println("Game code received: $gameCode")
-
                         state = DialogState.SHOW_HOST_GAME_FIELD
+
                         withContext(Dispatchers.IO) {
                             try {
                                 val secretStr = client?.receiveSecretCode()
@@ -349,8 +314,6 @@ fun App(
         state = DialogState.IS_LOADING
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                println("Attempting to connect to the server...")
-
                 client =
                     GameClient(
                         serverHost,
@@ -365,7 +328,6 @@ fun App(
                 val success = client?.joinGame(joinGameCode) == true
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        println("Successfully joined the game with code: $joinGameCode")
                         val secretStr = client?.receiveSecretCode()
                         resetToStartMultiplayer(secretStr?.split(" ") ?: listOf())
                     }
@@ -444,7 +406,9 @@ fun App(
                     onClick = {
                         isMultiplayer = !isMultiplayer
                         if (isMultiplayer) {
-                            resetSingleplayerGame()
+                            resetGame()
+                            isMultiplayer = true
+                            state = DialogState.SHOW_MULTIPLAYER_MODES
                         } else if (client != null) {
                             closeSession()
                             resetGame()
@@ -648,7 +612,6 @@ fun App(
                                 clipboardManager.setText(AnnotatedString(gameCode ?: ""))
                             }) { Text("Copy code") }
                             Button(onClick = {
-                                // client?.handleDisconnection()
                                 resetGame()
                                 closeSession()
                             }) { Text("Exit") }
@@ -791,19 +754,19 @@ fun DisplayColors(
 
 fun main(args: Array<String>) =
     application {
-        val serverHost = if (args.isNotEmpty()) args[0] else "localhost"
-        val serverPort = if (args.size > 1) args[1].toIntOrNull() else 12345
-        if (serverPort == null) {
-            println("Invalid port number.")
-        } else {
-            ScoresManager.connect()
-            ScoresManager.createScoresTable()
-            Window(
-                onCloseRequest = ::exitApplication,
-                title = "Mastermind - Game",
-                state = WindowState(width = 950.dp, height = 900.dp),
-            ) {
-                App(serverHost, serverPort)
-            }
+        val parser = ArgParser("game")
+        val serverHost by parser.option(ArgType.String, shortName = "host", description = "Server host").default("localhost")
+        val serverPort by parser.option(ArgType.Int, shortName = "port", description = "Server port").default(12345)
+        parser.parse(args)
+
+        ScoresManager.connect()
+        ScoresManager.createScoresTable()
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Mastermind - Game",
+            state = WindowState(width = 950.dp, height = 900.dp),
+        ) {
+            App(serverHost, serverPort)
         }
+
     }

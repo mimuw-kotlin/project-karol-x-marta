@@ -56,7 +56,6 @@ fun ScoresDialog(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Sequence Length",
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Max Attempts Value\n")
@@ -68,7 +67,6 @@ fun ScoresDialog(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Max Attempts",
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Colors Number\n")
@@ -80,7 +78,6 @@ fun ScoresDialog(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Colors Number",
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (showScores) {

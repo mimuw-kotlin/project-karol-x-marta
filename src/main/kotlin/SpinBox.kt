@@ -6,8 +6,8 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +43,7 @@ fun SpinBox(
             },
             enabled = value > minValue,
         ) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Decrease $description")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Decrease $description")
         }
         Column {
             TextField(
@@ -96,7 +96,7 @@ fun SpinBox(
             },
             enabled = value < maxValue,
         ) {
-            Icon(Icons.Default.ArrowForward, contentDescription = "Increase $description")
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Increase $description")
         }
     }
 }

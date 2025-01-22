@@ -1,6 +1,6 @@
 class Game(
     private val settings: Settings,
-    val secret: List<String>? = null,
+    secret: List<String>? = null,
 ) {
     var secretCode: List<String> =
         secret

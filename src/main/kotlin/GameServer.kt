@@ -63,7 +63,7 @@ class GameServer(
                         synchronized(this) {
                             val gameCode = request["gameCode"] as? String
                             if (gameCode != null) {
-                                println("Joining game $gameCode")
+                                println("Joining game with code: $gameCode")
                                 val gameSession = games[gameCode]
                                 if (gameSession != null && gameSession.addPlayer(clientSocket, output)) {
                                     clients[clientSocket] = gameCode
@@ -74,6 +74,7 @@ class GameServer(
                                         gameSession.startGame()
                                     }
                                 } else {
+                                    println("Joining game failed: invalid game code or game full")
                                     output.writeObject(mapOf("status" to "error", "message" to "Invalid game code or game full"))
                                 }
                             } else {
@@ -87,14 +88,11 @@ class GameServer(
                             val gameCode = clients[clientSocket]
                             if (gameCode != null) {
                                 val result = request["result"] as GameResult
-                                // jesli jest timeout to na ostatnim polu jest true
                                 val gameSession = games[gameCode]
                                 gameSession?.submitResult(clientSocket, result)
                                 if (gameSession?.isComplete() == true) {
                                     val results = gameSession.getResults()
                                     gameSession.notifyPlayers(results)
-//                                    games.remove(gameCode)
-//                                    nextCodes.add(gameCode.toInt())
                                     disconnectClient(gameSession.players.keys.elementAt(0))
                                     disconnectClient(gameSession.players.keys.elementAt(1))
                                 }
@@ -150,10 +148,6 @@ class GameServer(
         }
     }
 
-//    private fun generateGameCode(): String {
-//        return (1000..9999).random().toString()
-//    }
-
     private fun generateGameCode(): String {
         val code = nextCodes.first().toString()
         nextCodes = nextCodes.drop(1).toMutableList()
@@ -197,44 +191,39 @@ class GameSession {
 
     fun getResults(): Map<Socket, GameResult> = results
 
+    fun generateResultMessage(result: GameResult): String =
+        if (result.isTimeOut) {
+            "Time out\n"
+        } else {
+            (if (result.isWin) "Success, " else "Failure, ") +
+                "Attempts: ${result.attempts}, Time: ${"%.3f".format(result.time / 1000.0)} seconds\n"
+        }
+
     fun notifyPlayers(results: Map<Socket, GameResult>) {
         val sockets = results.keys
         val result1 = results[sockets.elementAt(0)] ?: return
         val result2 = results[sockets.elementAt(1)] ?: return
-        var player1Msg = ""
-        var player2Msg = ""
-        val player1Results =
-            if (result1.isTimeOut) {
-                "Time out\n"
-            } else {
-                (if (result1.isWin) "Success, " else "Failure, ") +
-                    "Attempts: ${result1.attempts}, Time: ${"%.3f".format(result1.time / 1000.0)} seconds\n"
-            }
-        val player2Results =
-            if (result2.isTimeOut) {
-                "Time out\n"
-            } else {
-                (if (result2.isWin) "Success, " else "Failure, ") +
-                    "Attempts: ${result2.attempts}, Time: ${"%.3f".format(result2.time / 1000.0)} seconds\n"
+
+        val player1Results = generateResultMessage(result1)
+        val player2Results = generateResultMessage(result2)
+        var player1Info = "\nYour score\n$player1Results\nOponent score\n$player2Results"
+        var player2Info = "\nYour score\n$player2Results\nOponent score\n$player1Results"
+
+        val (player1Message, player2Message) =
+            when {
+                result1.isWin && result2.isWin ->
+                    when {
+                        result1.time < result2.time -> "You win!\n$player1Info" to "You lose\n$player2Info"
+                        result2.time < result1.time -> "You lose\n$player1Info" to "You win!\n$player2Info"
+                        else -> "Draw\n$player1Info" to "Draw\n$player2Info"
+                    }
+                result1.isWin -> "You win!\n$player1Info" to "You lose\n$player2Info"
+                result2.isWin -> "You lose\n$player1Info" to "You win!\n$player2Info"
+                else -> "Noone wins\n$player1Info" to "Noone wins\n$player2Info"
             }
 
-        if (result1.isWin && result2.isWin) {
-            if (result1.time < result2.time) {
-                player1Msg = "You win!\n\nYour score\n$player1Results\nOponent score\n$player2Results"
-                player2Msg = "You lose\n\nYour score\n$player2Results\nOponent score\n$player1Results"
-            }
-        } else if (result1.isWin) {
-            player1Msg = "You win!\n\nYour score\n$player1Results\nOponent score\n$player2Results"
-            player2Msg = "You lose!\n\nYour score\n$player2Results\nOponent score\n$player1Results"
-        } else if (result2.isWin) {
-            player1Msg = "You lose\nYour score\n$player1Results\nOponent score\n$player2Results"
-            player2Msg = "You win!\n\nYour score\n$player2Results\nOponent score\n$player1Results"
-        } else {
-            player1Msg = "Noone wins\n\nYour score\n$player1Results\nOponent score\n$player2Results"
-            player2Msg = "Noone wins\n\nYour score\n$player2Results\nOponent score\n$player1Results"
-        }
-        players[sockets.elementAt(0)]?.writeObject(mapOf("status" to "results", "results" to player1Msg))
-        players[sockets.elementAt(1)]?.writeObject(mapOf("status" to "results", "results" to player2Msg))
+        players[sockets.elementAt(0)]?.writeObject(mapOf("status" to "results", "results" to player1Message))
+        players[sockets.elementAt(1)]?.writeObject(mapOf("status" to "results", "results" to player2Message))
     }
 
     fun closeSession() {

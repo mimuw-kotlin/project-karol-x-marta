@@ -18,14 +18,14 @@ object ScoresManager {
 
     fun createScoresTable() {
         val createScores = """
-        CREATE TABLE IF NOT EXISTS scores (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sequenceLength INTEGER,
-            maxAttempts INTEGER,
-            colorsNumber INTEGER,
-            time REAL
-        );
-        """
+            CREATE TABLE IF NOT EXISTS scores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sequenceLength INTEGER,
+                maxAttempts INTEGER,
+                colorsNumber INTEGER,
+                time REAL
+            );
+            """
 
         try {
             val statement = connection?.createStatement()
@@ -70,10 +70,10 @@ object ScoresManager {
                 async(Dispatchers.IO) {
                     val scores = mutableListOf<Double>()
                     val query = """
-        SELECT * FROM scores 
-        WHERE sequenceLength = ? AND maxAttempts = ? AND colorsNumber = ?
-        ORDER BY time ASC
-        """
+                        SELECT * FROM scores 
+                        WHERE sequenceLength = ? AND maxAttempts = ? AND colorsNumber = ?
+                        ORDER BY time ASC
+                        """
                     try {
                         val preparedStatement = connection?.prepareStatement(query)
                         preparedStatement?.setInt(1, sequenceLength)
