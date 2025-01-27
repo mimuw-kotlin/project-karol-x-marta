@@ -50,7 +50,7 @@ Dostępne flagi:
   -host,
   -port.
 
-Przykładowe wywołanie: ./gradlew runClient -Pargs="-host, 'localhost', -port, 12346"
+Przykładowe wywołanie: ./gradlew runClient -Pargs="-host, localhost, -port, 12346"
 
 - Serwer (dla trybu multiplayer):
 
@@ -63,8 +63,8 @@ Zostawiliśmy dodatkowo wersję terminalową, którą można uruchomić poprzez 
 gdzie można dołączyć flagi w ten sam sposób co w przypadku GUI.
 
 Dostępne flagi:
--l (sequence length) - od 3 do 6,
--a (max attmpts) - od 3 do 20,
+-l (sequence length) - od 2 do 6,
+-a (max attmpts) - od 3 do 12,
 -c (color list, jako string kolorów oddzielonych spacjami) - długość od 3 do 8.
 
 Przykładowe wywołanie: ./gradlew runTerminal -Pargs="-l, 4, -a, 10, -c, red blue green yellow"

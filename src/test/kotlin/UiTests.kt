@@ -13,11 +13,18 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.runComposeUiTest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Test
+import kotlin.random.Random
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class UiTest {
+class UiTests {
+    private val minColorList = DEFAULT_COLORS_LIST.subList(0, MIN_COLORS)
+
     private fun ComposeUiTest.spinBoxTest(
         description: String,
         startValue: Int,
@@ -147,20 +154,127 @@ class UiTest {
                 ScoresManager.createScoresTable()
                 App("localhost", 12345)
             }
-//        onAllNodes(isRoot())[0].captureToImage().also {
-//            val tmpFile = Path("./zdj/compose-test.png").toFile()
-//            ImageIO.write(it.toAwtImage(), "png", tmpFile)
-//        }
             onNodeWithContentDescription("Trophy").assertExists()
             onNodeWithContentDescription("Trophy").performClick()
             onNodeWithText("Scores for chosen parameters:").assertExists()
+            runBlocking {
+                    withTimeout(1000L) {
+                        launch(Dispatchers.IO) {
+                                ScoresManager.getFilteredScores(DEFAULT_SEQ_LENGTH, DEFAULT_ATTEMPTS, DEFAULT_COLORS_LIST.size)
+                                    .forEachIndexed { index, score ->
+                                        if (index < 8) // widać maksymalnie 8 wyników bez scrollowania
+                                            onNodeWithText("${index + 1}. ${score}s").assertExists()
+                                    }
+                            }.join()
+                        }
+            }
             spinBoxTest("Sequence Length", DEFAULT_SEQ_LENGTH, MIN_SEQ_LENGTH, MAX_SEQ_LENGTH)
             spinBoxTest("Max Attempts", DEFAULT_ATTEMPTS, MIN_ATTEMPTS, MAX_ATTEMPTS)
             spinBoxTest("Colors Number", DEFAULT_COLORS_LIST.size, MIN_COLORS, MAX_COLORS)
         }
+
+    @Test
+    fun testGameSinglePlayer() =
+        runComposeUiTest {
+            setContent {
+                App("localhost", 12345)
+            }
+            for (attempt in 0 until DEFAULT_ATTEMPTS) {
+                for (index in 0 until DEFAULT_SEQ_LENGTH) {
+                    onNodeWithTag(index.toString()).assertExists().performClick()
+                    val color = DEFAULT_COLORS_LIST[Random.nextInt(DEFAULT_COLORS_LIST.size)]
+                    onNodeWithTag(color).assertExists().performClick()
+                }
+                onNodeWithText("Submit").assertExists().performClick()
+                val ended = try {
+                    onNodeWithText("The secret code was: \n").assertExists()
+                    true
+                }
+                catch (e: AssertionError) {
+                    false
+                }
+                if (ended)
+                    break
+            }
+            onNodeWithText("The secret code was: \n").assertExists()
+            onNodeWithText("Submit").assertDoesNotExist()
+            onNodeWithText("New Game").assertExists()
+            onNodeWithText("Exit").assertExists()
+        }
+
+    private fun ComposeUiTest.changeSettingsToMinimal() {
+        onNodeWithContentDescription("Settings").assertExists().performClick()
+        onNodeWithContentDescription("Sequence Length").assertExists()
+        onNodeWithContentDescription("Sequence Length").performTextClearance()
+        onNodeWithContentDescription("Sequence Length").performTextInput(MIN_SEQ_LENGTH.toString())
+        var clicked = DEFAULT_COLORS_LIST.size
+        while (clicked > MIN_COLORS) {
+            onNodeWithTag(DEFAULT_COLORS_LIST[--clicked]).assertExists().performClick()
+        }
+        onNodeWithText("Apply and Restart").assertExists().performClick()
+    }
+
+    @Test
+    fun applyMinimalSettings() =
+        runComposeUiTest {
+            setContent {
+                App("localhost", 12345)
+            }
+            // zmieniamy liste kolorów i długość sekwencji na minimalne
+            changeSettingsToMinimal()
+
+            // sprawdzamy czy ui zmieniła się długość sekwencji
+            for (index in 0 until MIN_SEQ_LENGTH) {
+                onNodeWithTag(index.toString()).assertExists()
+            }
+            onNodeWithTag(MIN_SEQ_LENGTH.toString()).assertDoesNotExist()
+            onNodeWithTag("0").performClick()
+
+            // sprawdzamy czy ui zmieniła się lista dostępnych kolorów
+            onNodeWithTag("No Color").assertExists()
+            for (color in DEFAULT_COLORS_LIST) {
+                if (color in minColorList)
+                    onNodeWithTag(color).assertExists()
+                else
+                    onNodeWithTag(color).assertDoesNotExist()
+            }
+        }
+
+    @Test
+    fun winSinglePlayerGame() =
+        runComposeUiTest {
+            setContent {
+                App("localhost", 12345)
+            }
+            changeSettingsToMinimal()
+            val allPossibleGuesses = mutableListOf<List<String>>()
+            for (color1 in minColorList) {
+                for (color2 in minColorList) {
+                    allPossibleGuesses.add(listOf(color1, color2))
+                }
+            }
+            for (index in 0 until DEFAULT_ATTEMPTS) {
+                val guess = allPossibleGuesses[index]
+                onNodeWithTag("0").performClick()
+                onNodeWithTag(guess[0]).performClick()
+                onNodeWithTag("1").performClick()
+                onNodeWithTag(guess[1]).performClick()
+                onNodeWithText("Submit").performClick()
+                val won = try {
+                    onNodeWithText("Congratulations! You've guessed the sequence in ${index+1} attempts.\n").assertExists()
+                    true
+                }
+                catch (e: AssertionError) {
+                    false
+                }
+                if (won)
+                    break
+            }
+            onNodeWithText("Submit").assertDoesNotExist()
+            onNodeWithText("New Game").assertExists()
+            onNodeWithText("Exit").assertExists()
+        }
+
 }
 
-//        onAllNodes(isRoot())[0].captureToImage().also {
-//            val tmpFile = Path("./zdj/compose-test.png").toFile()
-//            ImageIO.write(it.toAwtImage(), "png", tmpFile)
-//        }
+

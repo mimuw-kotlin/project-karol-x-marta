@@ -37,8 +37,8 @@ import kotlin.collections.toMutableList
 import kotlin.system.exitProcess
 
 val MAX_SEQ_LENGTH = 6
-val MIN_SEQ_LENGTH = 3
-val MAX_ATTEMPTS = 20
+val MIN_SEQ_LENGTH = 2
+val MAX_ATTEMPTS = 12
 val MIN_ATTEMPTS = 3
 val MAX_COLORS = 8
 val MIN_COLORS = 3
@@ -164,24 +164,27 @@ fun App(
     }
 
     LaunchedEffect(timeManager.startTime, timeManager.pausedTime, state) {
-        while (timeManager.startTime != null &&
-            !gameOver &&
-            timeManager.pausedTime == null &&
-            state != DialogState.IS_PAUSED &&
-            state != DialogState.SERVER_DISCONNECTED
-        ) {
-            delay(10L)
-            timeManager.updateTimer()
-            if (timeManager.timer > TIMEOUT && isMultiplayer && !timeOuted) {
-                timeOuted = true
-                timeManager.setGameEndedTime()
-                endMultiplayerGame(timeManager.timer, false)
-                gameOver = true
+        withContext(Dispatchers.Default) {
+            while (timeManager.startTime != null &&
+                !gameOver &&
+                timeManager.pausedTime == null &&
+                state != DialogState.IS_PAUSED &&
+                state != DialogState.SERVER_DISCONNECTED
+            ) {
+                delay(10L)
+                timeManager.updateTimer()
+                if (timeManager.timer > TIMEOUT && isMultiplayer && !timeOuted) {
+                    timeOuted = true
+                    timeManager.setGameEndedTime()
+                    endMultiplayerGame(timeManager.timer, false)
+                    gameOver = true
+                }
+            }
+            if (game.isGameOver()) {
+                timeManager.setTimer()
             }
         }
-        if (game.isGameOver()) {
-            timeManager.setTimer()
-        }
+
     }
 
     fun closeSession() {

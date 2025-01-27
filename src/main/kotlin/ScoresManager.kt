@@ -1,6 +1,7 @@
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -41,6 +42,7 @@ object ScoresManager {
         colorsNumber: Int,
         time: Long,
     ) = coroutineScope {
+        //delay(2000L) // z delayem aplikacja działa poprawnie, nie blokuje się
         val deferred =
             async(Dispatchers.IO) {
                 val record =
@@ -66,6 +68,7 @@ object ScoresManager {
         colorsNumber: Int,
     ): List<Double> =
         coroutineScope {
+            //delay(2000L) // z delayem aplikacja działa poprawnie, nie blokuje się
             val deferred =
                 async(Dispatchers.IO) {
                     val scores = mutableListOf<Double>()
