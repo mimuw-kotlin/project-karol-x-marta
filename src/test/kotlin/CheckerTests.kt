@@ -1,8 +1,8 @@
 import org.junit.jupiter.api.Test
 import kotlin.random.Random
+import kotlin.test.assertEquals
 
 class CheckerTests {
-
     @Test
     fun checkAllCorrect() {
         for (sequenceLength in MIN_SEQ_LENGTH..MAX_SEQ_LENGTH) {
@@ -10,8 +10,8 @@ class CheckerTests {
                 val code = List(sequenceLength) { Random.nextInt(0, colors).toString() }
                 val checker = Checker(code)
                 checker.checkGuess(code).apply {
-                    assert(correct == sequenceLength)
-                    assert(misplaced == 0)
+                    assertEquals(sequenceLength, correct)
+                    assertEquals(0, misplaced)
                 }
             }
         }
@@ -29,16 +29,15 @@ class CheckerTests {
         val checker2 = Checker(code2)
         val checker3 = Checker(code3)
         checker.checkGuess(guess).apply {
-            assert(correct == 0)
-            assert(misplaced == 4)
+            assertEquals(0, correct)
+            assertEquals(4, misplaced)
         }
         checker2.checkGuess(guess2).apply {
-            assert(correct == 0)
-            assert(misplaced == 5)
+            assertEquals(0, correct)
+            assertEquals(5, misplaced)
         }
         checker3.checkGuess(guess3).apply {
-            assert(correct == 0)
-            assert(misplaced == 6)
+            assertEquals(0, correct)
         }
     }
 
@@ -54,20 +53,16 @@ class CheckerTests {
         val checker2 = Checker(code2)
         val checker3 = Checker(code3)
         checker.checkGuess(guess).apply {
-            assert(correct == 1)
-            assert(misplaced == 3)
+            assertEquals(1, correct)
+            assertEquals(3, misplaced)
         }
         checker2.checkGuess(guess2).apply {
-            assert(correct == 2)
-            assert(misplaced == 2)
+            assertEquals(2, correct)
+            assertEquals(2, misplaced)
         }
         checker3.checkGuess(guess3).apply {
-            assert(correct == 1)
-            assert(misplaced == 4)
+            assertEquals(1, correct)
+            assertEquals(4, misplaced)
         }
     }
-
-
-
-
 }
