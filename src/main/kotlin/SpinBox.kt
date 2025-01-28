@@ -62,7 +62,7 @@ fun SpinBox(
                 },
                 readOnly = false,
                 modifier =
-                    Modifier
+                    modifier
                         .width(150.dp)
                         .onFocusChanged { focusState ->
                             if (!focusState.isFocused) {
@@ -80,7 +80,7 @@ fun SpinBox(
                 Text(
                     text = "Allowed range: $minValue - $maxValue",
                     color = androidx.compose.ui.graphics.Color.Red,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    modifier = modifier.align(Alignment.CenterHorizontally),
                 )
             }
         }

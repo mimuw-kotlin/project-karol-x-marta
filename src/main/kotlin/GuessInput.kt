@@ -43,7 +43,7 @@ fun GuessInput(
         currentGuess.forEachIndexed { index, color ->
             Box(
                 modifier =
-                    Modifier
+                    modifier
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(ALL_COLORS[color] ?: Color.White)
@@ -55,7 +55,7 @@ fun GuessInput(
                 DropdownMenu(
                     expanded = expandedIndex == index,
                     onDismissRequest = { expandedIndex = -1 },
-                    modifier = Modifier.background(Color.White),
+                    modifier = modifier.background(Color.White),
                 ) {
                     DropdownMenuItem(
                         onClick = {
@@ -63,7 +63,7 @@ fun GuessInput(
                             expandedIndex = -1
                         },
                         modifier =
-                            Modifier
+                            modifier
                                 .height(30.dp)
                                 .padding(vertical = 2.dp)
                                 .testTag("No Color"),
@@ -86,7 +86,7 @@ fun GuessInput(
                                 expandedIndex = -1
                             },
                             modifier =
-                                Modifier
+                                modifier
                                     .height(30.dp)
                                     .padding(vertical = 2.dp)
                                     .testTag(colorOption),
@@ -101,7 +101,7 @@ fun GuessInput(
                                 )
                                 Box(
                                     modifier =
-                                        Modifier
+                                        modifier
                                             .size(20.dp)
                                             .clip(CircleShape)
                                             .background(ALL_COLORS[colorOption] ?: Color.White),
@@ -111,14 +111,14 @@ fun GuessInput(
                     }
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = modifier.width(8.dp))
         }
         Button(
             onClick = {
                 onSubmitGuess(currentGuess)
                 currentGuess = List(guessSize) { "" }
             },
-            Modifier.semantics {
+            modifier.semantics {
                 contentDescription = "Submit"
             },
             enabled = currentGuess.none { it.isEmpty() },

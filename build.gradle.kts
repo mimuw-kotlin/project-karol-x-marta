@@ -37,8 +37,6 @@ dependencies {
     testImplementation(compose.uiTest)
     implementation("org.xerial:sqlite-jdbc:3.41.2.2")
     implementation("androidx.compose.material:material-icons-extended:1.7.3")
-    //   implementation("androidx.compose.ui:ui-test-junit4:1.7.3")
-//    ktlintRuleset("com.pinterest.ktlint:ktlint-ruleset-standard:0.42.1")
     ktlintRuleset("io.nlopez.compose.rules:ktlint:0.4.22")
     implementation("org.jetbrains.compose.ui:ui-util:1.7.3")
 }
@@ -97,8 +95,6 @@ tasks.register<Test>("runTests") {
     }
     useJUnitPlatform()
 }
-
-
 
 configure<KtlintExtension> {
     version.set("1.5.0")

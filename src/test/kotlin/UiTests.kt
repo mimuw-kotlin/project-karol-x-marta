@@ -158,15 +158,18 @@ class UiTests {
             onNodeWithContentDescription("Trophy").performClick()
             onNodeWithText("Scores for chosen parameters:").assertExists()
             runBlocking {
-                    withTimeout(1000L) {
-                        launch(Dispatchers.IO) {
-                                ScoresManager.getFilteredScores(DEFAULT_SEQ_LENGTH, DEFAULT_ATTEMPTS, DEFAULT_COLORS_LIST.size)
-                                    .forEachIndexed { index, score ->
-                                        if (index < 8) // widać maksymalnie 8 wyników bez scrollowania
-                                            onNodeWithText("${index + 1}. ${score}s").assertExists()
-                                    }
-                            }.join()
-                        }
+                withTimeout(1000L) {
+                    launch(Dispatchers.IO) {
+                        ScoresManager
+                            .getFilteredScores(DEFAULT_SEQ_LENGTH, DEFAULT_ATTEMPTS, DEFAULT_COLORS_LIST.size)
+                            .forEachIndexed { index, score ->
+                                if (index < 8) {
+                                    onNodeWithText("${index + 1}. ${score}s").assertExists()
+                                    // widać maksymalnie 8 wyników bez scrollowania
+                                }
+                            }
+                    }.join()
+                }
             }
             spinBoxTest("Sequence Length", DEFAULT_SEQ_LENGTH, MIN_SEQ_LENGTH, MAX_SEQ_LENGTH)
             spinBoxTest("Max Attempts", DEFAULT_ATTEMPTS, MIN_ATTEMPTS, MAX_ATTEMPTS)
@@ -186,15 +189,16 @@ class UiTests {
                     onNodeWithTag(color).assertExists().performClick()
                 }
                 onNodeWithText("Submit").assertExists().performClick()
-                val ended = try {
-                    onNodeWithText("The secret code was: \n").assertExists()
-                    true
-                }
-                catch (e: AssertionError) {
-                    false
-                }
-                if (ended)
+                val ended =
+                    try {
+                        onNodeWithText("The secret code was: \n").assertExists()
+                        true
+                    } catch (e: AssertionError) {
+                        false
+                    }
+                if (ended) {
                     break
+                }
             }
             onNodeWithText("The secret code was: \n").assertExists()
             onNodeWithText("Submit").assertDoesNotExist()
@@ -233,10 +237,11 @@ class UiTests {
             // sprawdzamy czy ui zmieniła się lista dostępnych kolorów
             onNodeWithTag("No Color").assertExists()
             for (color in DEFAULT_COLORS_LIST) {
-                if (color in minColorList)
+                if (color in minColorList) {
                     onNodeWithTag(color).assertExists()
-                else
+                } else {
                     onNodeWithTag(color).assertDoesNotExist()
+                }
             }
         }
 
@@ -260,21 +265,19 @@ class UiTests {
                 onNodeWithTag("1").performClick()
                 onNodeWithTag(guess[1]).performClick()
                 onNodeWithText("Submit").performClick()
-                val won = try {
-                    onNodeWithText("Congratulations! You've guessed the sequence in ${index+1} attempts.\n").assertExists()
-                    true
-                }
-                catch (e: AssertionError) {
-                    false
-                }
-                if (won)
+                val won =
+                    try {
+                        onNodeWithText("Congratulations! You've guessed the sequence in ${index + 1} attempts.\n").assertExists()
+                        true
+                    } catch (e: AssertionError) {
+                        false
+                    }
+                if (won) {
                     break
+                }
             }
             onNodeWithText("Submit").assertDoesNotExist()
             onNodeWithText("New Game").assertExists()
             onNodeWithText("Exit").assertExists()
         }
-
 }
-
-

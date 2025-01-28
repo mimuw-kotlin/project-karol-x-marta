@@ -184,7 +184,6 @@ fun App(
                 timeManager.setTimer()
             }
         }
-
     }
 
     fun closeSession() {
@@ -355,8 +354,8 @@ fun App(
     }
 
     MaterialTheme {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 30.dp, bottom = 16.dp, end = 295.dp)) {
+        Box(modifier = modifier.fillMaxSize()) {
+            Column(modifier = modifier.fillMaxWidth().padding(start = 16.dp, top = 30.dp, bottom = 16.dp, end = 295.dp)) {
                 Text(text, fontWeight = FontWeight.Bold)
                 PreviousGuesses(guesses = guesses)
                 if (gameOver) {
@@ -364,10 +363,10 @@ fun App(
                     DisplayColors(game.secretCode)
                 }
             }
-            Row(modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+            Row(modifier = modifier.align(Alignment.TopEnd).padding(16.dp)) {
                 Text(
                     text = "Time: ${"%.3f".format(timeManager.timer / 1000.0)} s  ",
-                    modifier = Modifier.align(Alignment.CenterVertically),
+                    modifier = modifier.align(Alignment.CenterVertically),
                 )
 
                 if (!isMultiplayer) {
@@ -427,7 +426,7 @@ fun App(
             }
             if (gameOver) {
                 Row(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                    modifier = modifier.align(Alignment.BottomCenter).padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Button(
@@ -438,14 +437,14 @@ fun App(
                     ) {
                         Text("New Game")
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = modifier.width(8.dp))
                     Button(onClick = { exitProcess(0) }) {
                         Text("Exit")
                     }
                 }
             } else {
                 Row(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                    modifier = modifier.align(Alignment.BottomCenter).padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     GuessInput(
@@ -463,12 +462,15 @@ fun App(
             // Dialogs
             when (state) {
                 DialogState.SHOW_SETTINGS -> {
+                    val currentSequenceLength by remember { mutableStateOf(sequenceLength) }
+                    val currentMaxAttempts by remember { mutableStateOf(maxAttempts) }
+                    val currentColorsList by remember { mutableStateOf(colorsList) }
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .background(Color.Gray.copy(alpha = 1f)),
+                        modifier = modifier
+                            .fillMaxSize()
+                            .background(Color.Gray.copy(alpha = 1f)),
                     )
+
                     SettingsDialog(
                         sequenceLength = sequenceLength,
                         onSequenceLengthChange = { sequenceLength = it },
@@ -477,6 +479,9 @@ fun App(
                         colorsList = colorsList,
                         onColorsListChange = { colorsList = it },
                         onDismissRequest = {
+                            sequenceLength = currentSequenceLength
+                            maxAttempts = currentMaxAttempts
+                            colorsList = currentColorsList
                             timeManager.resumeTimer()
                             state = DialogState.OFF
                         },
@@ -489,7 +494,7 @@ fun App(
                 DialogState.SHOW_SCORES -> {
                     Box(
                         modifier =
-                            Modifier
+                            modifier
                                 .fillMaxSize()
                                 .background(Color.Gray.copy(alpha = 1f)),
                     )
@@ -508,7 +513,7 @@ fun App(
                 DialogState.IS_PAUSED -> {
                     Box(
                         modifier =
-                            Modifier
+                            modifier
                                 .fillMaxSize()
                                 .background(Color.Gray.copy(alpha = 1f)),
                     )
@@ -594,13 +599,13 @@ fun App(
                         onDismissRequest = { },
                         title = {
                             Box(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center,
                             ) { Text("Game Code\n") }
                         },
                         text = {
                             Box(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
@@ -655,7 +660,7 @@ fun App(
                         text = {
                             Box(
                                 modifier =
-                                    Modifier
+                                    modifier
                                         .size(100.dp)
                                         .background(Color.White, shape = CircleShape),
                                 contentAlignment = Alignment.Center,
@@ -672,7 +677,7 @@ fun App(
                         text = {
                             Box(
                                 modifier =
-                                    Modifier
+                                    modifier
                                         .size(100.dp)
                                         .background(Color.White, shape = CircleShape),
                                 contentAlignment = Alignment.Center,
@@ -727,10 +732,10 @@ fun PreviousGuesses(
             Column {
                 Row {
                     DisplayColors(guess)
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = modifier.width(20.dp))
                     Text(feedback.toString())
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = modifier.height(20.dp))
             }
         }
     }
@@ -745,12 +750,12 @@ fun DisplayColors(
         guess.forEach { color ->
             Box(
                 modifier =
-                    Modifier
+                    modifier
                         .size(32.dp)
                         .clip(CircleShape)
                         .background(ALL_COLORS[color] ?: Color.White),
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = modifier.width(10.dp))
         }
     }
 }
@@ -767,9 +772,8 @@ fun main(args: Array<String>) =
         Window(
             onCloseRequest = ::exitApplication,
             title = "Mastermind - Game",
-            state = WindowState(width = 950.dp, height = 900.dp),
+            state = WindowState(width = 1000.dp, height = 900.dp),
         ) {
             App(serverHost, serverPort)
         }
-
     }

@@ -20,6 +20,7 @@ fun SettingsDialog(
     onColorsListChange: (List<String>) -> Unit,
     onDismissRequest: () -> Unit,
     onApply: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var selectedSequenceLength by remember { mutableIntStateOf(sequenceLength) }
     var selectedMaxAttempts by remember { mutableIntStateOf(maxAttempts) }
@@ -44,10 +45,10 @@ fun SettingsDialog(
                     },
                     minValue = MIN_SEQ_LENGTH,
                     maxValue = MAX_SEQ_LENGTH,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    modifier = modifier.align(Alignment.CenterHorizontally),
                     description = "Sequence Length",
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = modifier.height(16.dp))
 
                 Text("Max Attempts\n")
                 SpinBox(
@@ -58,10 +59,10 @@ fun SettingsDialog(
                     },
                     minValue = MIN_ATTEMPTS,
                     maxValue = MAX_ATTEMPTS,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    modifier = modifier.align(Alignment.CenterHorizontally),
                     description = "Max Attempts",
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = modifier.height(16.dp))
 
                 Text("Colors \n")
                 Row {
@@ -86,7 +87,7 @@ fun SettingsDialog(
                                     uncheckedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color,
                                 ),
                             modifier =
-                                Modifier.semantics {
+                                modifier.semantics {
                                     contentDescription = "Color"
                                     testTag = color
                                 },
@@ -99,7 +100,7 @@ fun SettingsDialog(
                         text = "You must select at least $MIN_COLORS colors.",
                         color = MaterialTheme.colors.error,
                         style = MaterialTheme.typography.caption,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                        modifier = modifier.padding(start = 16.dp, top = 4.dp),
                     )
 
                     LaunchedEffect(Unit) {
