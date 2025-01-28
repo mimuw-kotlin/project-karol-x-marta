@@ -112,7 +112,7 @@ fun App(
     var gameOver by remember { mutableStateOf(false) }
     val guesses = remember { mutableStateListOf<Pair<List<String>, Feedback>>() }
     var currentGuess by remember { mutableStateOf(List(0) { "" }) }
-    val timeManager = remember { TimeManager() }
+    val timeManager = remember { TimeManager(TimeProvider()) }
 
     // Multiplayer Mode
     var isMultiplayer by remember { mutableStateOf(false) }
