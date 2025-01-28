@@ -53,10 +53,10 @@ fun ScoresDialog(
                     onValueChange = { selectedSequenceLength = it },
                     minValue = MIN_SEQ_LENGTH,
                     maxValue = MAX_SEQ_LENGTH,
-                    modifier = modifier.align(Alignment.CenterHorizontally),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Sequence Length",
                 )
-                Spacer(modifier = modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Max Attempts Value\n")
                 SpinBox(
@@ -64,10 +64,10 @@ fun ScoresDialog(
                     onValueChange = { selectedMaxAttempts = it },
                     minValue = MIN_ATTEMPTS,
                     maxValue = MAX_ATTEMPTS,
-                    modifier = modifier.align(Alignment.CenterHorizontally),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Max Attempts",
                 )
-                Spacer(modifier = modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Colors Number\n")
                 SpinBox(
@@ -75,15 +75,15 @@ fun ScoresDialog(
                     onValueChange = { selectedColorsNumber = it },
                     minValue = MIN_COLORS,
                     maxValue = MAX_COLORS,
-                    modifier = modifier.align(Alignment.CenterHorizontally),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Colors Number",
                 )
-                Spacer(modifier = modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 if (showScores) {
                     Column {
                         Text("Scores for chosen parameters:")
-                        LazyColumn(modifier = modifier.height(150.dp)) {
+                        LazyColumn(modifier = Modifier.height(150.dp)) {
                             items(scores.size) { index ->
                                 Text("${index + 1}. ${scores[index]}s")
                             }
@@ -93,11 +93,12 @@ fun ScoresDialog(
             }
         },
         buttons = {
-            Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Button(onClick = onDismissRequest) {
                     Text("Cancel")
                 }
             }
         },
+        modifier = modifier,
     )
 }

@@ -45,10 +45,10 @@ fun SettingsDialog(
                     },
                     minValue = MIN_SEQ_LENGTH,
                     maxValue = MAX_SEQ_LENGTH,
-                    modifier = modifier.align(Alignment.CenterHorizontally),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Sequence Length",
                 )
-                Spacer(modifier = modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Max Attempts\n")
                 SpinBox(
@@ -59,10 +59,10 @@ fun SettingsDialog(
                     },
                     minValue = MIN_ATTEMPTS,
                     maxValue = MAX_ATTEMPTS,
-                    modifier = modifier.align(Alignment.CenterHorizontally),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                     description = "Max Attempts",
                 )
-                Spacer(modifier = modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text("Colors \n")
                 Row {
@@ -87,7 +87,7 @@ fun SettingsDialog(
                                     uncheckedColor = (ALL_COLORS[color] ?: Color.WHITE) as androidx.compose.ui.graphics.Color,
                                 ),
                             modifier =
-                                modifier.semantics {
+                                Modifier.semantics {
                                     contentDescription = "Color"
                                     testTag = color
                                 },
@@ -100,7 +100,7 @@ fun SettingsDialog(
                         text = "You must select at least $MIN_COLORS colors.",
                         color = MaterialTheme.colors.error,
                         style = MaterialTheme.typography.caption,
-                        modifier = modifier.padding(start = 16.dp, top = 4.dp),
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp),
                     )
 
                     LaunchedEffect(Unit) {
@@ -120,5 +120,6 @@ fun SettingsDialog(
                 Text("Cancel")
             }
         },
+        modifier = modifier,
     )
 }
